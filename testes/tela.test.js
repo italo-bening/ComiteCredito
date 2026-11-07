@@ -52,7 +52,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
   await passo('atendente abre e vê o rodapé com a versão', async () => {
     await entrar(AT2);
     const r = await page.textContent('#rodape');
-    if (!/Comitê de Crédito · Versão 2 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
+    if (!/Comitê de Crédito · Versão 3 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
   });
   await passo('enviar incompleto mostra o que falta e marca em vermelho', async () => {
     await page.click('[data-a="aba"][data-id="nova"]');
@@ -117,7 +117,6 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.selectOption('#vcPf', 'diretoria');
     await page.click('[data-a="verComo"]');
     await page.waitForSelector('#vcbar:not([hidden])');
-    await page.click('[data-a="filtro"][data-id="todas"]');
     await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.click('[data-a="dirDecide"][data-v="aprovar"]');
     igual(await popTitulo(), 'Você está no modo Ver como');
@@ -125,8 +124,10 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.click('.pop .bts .btn-primary');
     await page.waitForSelector('#vcbar', { state: 'hidden' });
   });
-  await passo('diretoria: janela no meio, fila por chegada, estende e aprova seguindo para a próxima', async () => {
+  await passo('diretoria: só vê as listas dela, fila por chegada, aprova uma a uma', async () => {
     await entrar(DI);
+    const chips = await page.$$eval('[data-a="filtro"]', l => l.map(x => x.textContent.replace(/\d+$/, '').trim()));
+    igual(chips.join(' | '), 'Pendentes de aprovação | Aprovadas | Negadas');
     const ordem = await page.$$eval('.item .mid b', l => l.map(x => x.textContent));
     igual(ordem.join(' | '), 'Maria da Silva | Segundo Cooperado | Terceiro Cooperado');
     await abrirOp();
@@ -143,24 +144,39 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.click('[data-a="dirDecide"][data-v="estender"]');
     await titulo('Terceiro Cooperado');
     await page.click('[data-a="dirDecide"][data-v="devolver"]');
-    await titulo('Segundo Cooperado');
-    igual((await page.textContent('.painel .ph .tag')).trim(), 'Análise estendida');
+    igual(await popTitulo(), 'Acabaram as aprovações de hoje');
+    await page.waitForTimeout(900); await foto('06c-acabou-hoje');
+    const det = await page.textContent('.pop .det');
+    if (!/Aprovadas1/.test(det) || !/aprovação posterior1/.test(det) || !/Devolvidas ao gerente1/.test(det)) throw new Error('resumo: ' + det);
+    await fechaPop();
+    igual(await page.locator('.item[data-g="hoje"]').count(), 0);
+    igual(await page.locator('.item[data-g="depois"]').count(), 1);
+    await page.click('.item[data-g="depois"]'); await page.waitForSelector('.painel');
+    if (await page.locator('[data-v="estender"]').count()) throw new Error('aprovar depois de novo no mesmo dia');
     await page.click('[data-a="dirDecide"][data-v="reprovar"]');
     igual(await popTitulo(), 'Escreva o motivo'); await fechaPop();
     await page.fill('#a_texto', 'Sem capacidade');
     await page.click('[data-a="dirDecide"][data-v="reprovar"]');
-    igual(await popTitulo(), 'Operação reprovada'); await fechaPop();
+    igual(await popTitulo(), 'Acabaram as aprovações de hoje'); await fechaPop();
   });
-  await passo('filtro Analisadas', async () => {
-    await page.click('[data-a="filtro"][data-id="analisadas"]');
-    igual(await page.locator('.item').count(), 3);
+  await passo('diretoria: Aprovadas e Negadas', async () => {
+    await page.click('[data-a="filtro"][data-id="aprovadas"]');
+    igual(await page.locator('.item').count(), 1);
+    await page.click('[data-a="filtro"][data-id="negadas"]');
+    igual(await page.locator('.item').count(), 1);
+  });
+  await passo('analista e atendente só veem as listas deles', async () => {
+    await entrar(AN);
+    igual((await page.$$eval('[data-a="filtro"]', l => l.map(x => x.textContent.replace(/\d+$/, '').trim()))).join(' | '), 'Para analisar | Analisadas');
+    await entrar(AT2);
+    igual((await page.$$eval('[data-a="filtro"]', l => l.map(x => x.textContent.replace(/\d+$/, '').trim()))).join(' | '), 'Rascunhos e pendências | Enviadas | Para liberar | Liberadas | Negadas e canceladas');
   });
   await passo('atendente registra a liberação', async () => {
     await entrar(AT2); await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.fill('#a_contrato', 'CT-2026-0042');
     await page.click('[data-a="liberarOp"]');
     igual(await popTitulo(), 'Liberação registrada'); await fechaPop();
-    await page.click('[data-a="filtro"][data-id="todas"]');
+    await page.click('[data-a="filtro"][data-id="liberadas"]');
     await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.waitForTimeout(400); await foto('07-painel-liberada');
     igual((await page.locator('.et.feito').count()), 5);
@@ -173,7 +189,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.waitForSelector('.toast');
     await page.click('[data-a="descartarForm"]');
     await page.click('[data-a="aba"][data-id="ops"]');
-    await page.click('[data-a="filtro"][data-id="andamento"]');
+    await page.click('[data-a="filtro"][data-id="corrigir"]');
     await page.click('.item:has-text("Pedro Rascunho")'); await page.waitForSelector('.painel');
     await page.click('[data-a="excluirOp"]');
     igual((await page.textContent('[data-a="excluirOp"]')).trim(), 'Confirmar exclusão');

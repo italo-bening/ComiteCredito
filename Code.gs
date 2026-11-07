@@ -9,9 +9,11 @@
  *   2  Sem CPF do cooperado (só a conta); avalista e garantia só sim/não; parecer da análise opcional;
  *      gerente envia com voto favorável automático; diretoria ganha "Análise estendida"; devolver sem motivo;
  *      ordem de chegada (coluna chegada) para a fila de cada etapa.
+ *   3  "Análise estendida" vira "Aprovação posterior" (a diretoria decide outro dia; no dia seguinte volta para a fila);
+ *      "Reprovada" vira "Negada"; getData devolve o dia de hoje para a fila da diretoria.
  */
-const VERSAO = 2;
-const VERSAO_DATA = '07/11/2026 16:12';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
+const VERSAO = 3;
+const VERSAO_DATA = '07/11/2026 16:25';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
 
 const NOME_SISTEMA = 'Comitê de Crédito';
 const FUSO = 'America/Porto_Velho';
@@ -27,16 +29,16 @@ const ST = {
   PENDENTE: 'Pendente',          // análise (ou gerente) devolveu ao atendente para corrigir
   GERENTE: 'Com o gerente',      // gerente inclui o IAP e vota
   DIRETORIA: 'Na diretoria',     // diretoria aprova
-  ESTENDIDA: 'Análise estendida', // diretoria segurou para decidir em outro dia
+  POSTERIOR: 'Aprovação posterior', // diretoria vai decidir em outro dia
   APROVADA: 'Aprovada',          // atendente libera
   LIBERADA: 'Liberada',          // fim
-  REPROVADA: 'Reprovada',        // fim
+  NEGADA: 'Negada',              // fim
   CANCELADA: 'Cancelada'         // dá para reativar
 };
 const STATUS = Object.keys(ST).map(k => ST[k]);
 const PREPARO = [ST.RASCUNHO, ST.PENDENTE];
-const CANCELAVEIS = [ST.RASCUNHO, ST.PENDENTE, ST.ANALISE, ST.GERENTE, ST.DIRETORIA, ST.ESTENDIDA];
-const NA_DIRETORIA = [ST.DIRETORIA, ST.ESTENDIDA];
+const CANCELAVEIS = [ST.RASCUNHO, ST.PENDENTE, ST.ANALISE, ST.GERENTE, ST.DIRETORIA, ST.POSTERIOR];
+const NA_DIRETORIA = [ST.DIRETORIA, ST.POSTERIOR];
 
 // ---------- listas da tela ----------
 const MODALIDADES = ['Crédito pessoal', 'Capital de giro', 'Financiamento de veículo', 'Crédito rural',
@@ -76,7 +78,7 @@ const PERM_INFO = {
   solicita: 'Cadastra a operação e envia para análise',
   analisa: 'Faz a análise da operação',
   vota: 'Inclui o IAP e vota como gerente',
-  aprova: 'Aprova ou reprova (diretoria)',
+  aprova: 'Aprova ou nega (diretoria)',
   libera: 'Registra a liberação da operação aprovada'
 };
 const FIXOS = ['usuario', 'admin', 'dev'];
@@ -86,7 +88,7 @@ const PERFIS_INICIAIS = [
   ['dev', 'Admin com acesso técnico (planilha e código) e todas as etapas', 'sim', 'sim', 'sim', 'sim', 'sim', 'sim', 'sim'],
   ['analista', 'Analisa as operações e marca o checklist da análise', 'não', 'não', 'não', 'sim', 'não', 'não', 'não'],
   ['gerente', 'Inclui o IAP, vota e envia para a diretoria', 'não', 'não', 'não', 'não', 'sim', 'não', 'não'],
-  ['diretoria', 'Aprova, reprova ou devolve as operações', 'não', 'não', 'não', 'não', 'não', 'sim', 'não']
+  ['diretoria', 'Aprova, nega ou devolve as operações', 'não', 'não', 'não', 'não', 'não', 'sim', 'não']
 ];
 
 // =====================================================================================
@@ -129,6 +131,7 @@ function testarIcone() {
 // =====================================================================================
 function ss_() { return SpreadsheetApp.getActive(); }
 function agora_() { return Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'); }
+function hojeISO_() { return Utilities.formatDate(new Date(), FUSO, 'yyyy-MM-dd'); }
 function chegada_() { return Utilities.formatDate(new Date(), FUSO, 'yyyy-MM-dd HH:mm:ss'); }   // ordena a fila
 function norm_(e) { return String(e == null ? '' : e).toLowerCase().replace(/\s+/g, ''); }
 function sim_(v) { return /^(sim|s|true|1|x|yes)$/i.test(String(v == null ? '' : v).trim()); }
@@ -348,7 +351,7 @@ function mexer_(n, rev, fn) {
     const era = o.status;
     fn(o);
     o.atualizado = agora_(); o.rev++;
-    if (o.status !== era && !(era === ST.DIRETORIA && o.status === ST.ESTENDIDA)) o.chegada = chegada_();
+    if (o.status !== era && !(era === ST.DIRETORIA && o.status === ST.POSTERIOR)) o.chegada = chegada_();
     delete o._linha;
     gravar_(s, x._linha, o);
     return o.n;
@@ -504,21 +507,24 @@ function votarGerente(n, d, rev) {
   return resposta_(n);
 }
 
-// diretoria: acao = 'aprovar' | 'reprovar' | 'devolver' | 'estender' (motivo só é obrigatório para reprovar)
+// diretoria: acao = 'aprovar' | 'reprovar' (negar) | 'devolver' | 'estender' (aprovação posterior)
+// O motivo só é obrigatório para negar.
 function decidirDiretoria(n, acao, texto, rev) {
   const u = euGrava_();
   texto = txt_(texto, 4000, 'Parecer da diretoria');
-  const st = { aprovar: ST.APROVADA, reprovar: ST.REPROVADA, devolver: ST.GERENTE, estender: ST.ESTENDIDA }[acao];
+  const st = { aprovar: ST.APROVADA, reprovar: ST.NEGADA, devolver: ST.GERENTE, estender: ST.POSTERIOR }[acao];
   if (!st) throw new Error('Ação inválida.');
-  if (acao === 'reprovar' && !texto) throw new Error('Escreva o motivo para reprovar.');
+  if (acao === 'reprovar' && !texto) throw new Error('Escreva o motivo para negar.');
   mexer_(n, rev, o => {
     if (!podeDecidir_(u, o)) throw new Error(NA_DIRETORIA.indexOf(o.status) < 0 ? 'Esta operação não está aguardando a diretoria (está "' + o.status + '").' : 'Você não aprova operações desta agência.');
-    if (acao === 'estender' && o.status === ST.ESTENDIDA) throw new Error('Esta operação já está em análise estendida.');
-    if (acao === 'devolver') hist_(o, u, 'devolveu ao gerente', texto, 3);
-    else if (acao === 'estender') hist_(o, u, 'pediu análise estendida', texto, 3);
-    else {
+    if (acao === 'estender' && o.status === ST.POSTERIOR && o.diretoria && o.diretoria.adiadaDia === hojeISO_()) throw new Error('Esta operação já ficou para aprovação posterior hoje.');
+    if (acao === 'devolver') { o.diretoria = {}; hist_(o, u, 'devolveu ao gerente', texto, 3); }
+    else if (acao === 'estender') {
+      o.diretoria = { adiadaDia: hojeISO_(), adiadaEm: agora_(), por: u.nome, texto: texto };
+      hist_(o, u, 'deixou para aprovação posterior', texto, 3);
+    } else {
       o.diretoria = { decisao: st, texto: texto, por: u.nome, email: u.email, em: agora_() };
-      hist_(o, u, acao === 'aprovar' ? 'aprovou' : 'reprovou', texto, acao === 'aprovar' ? 4 : 3);
+      hist_(o, u, acao === 'aprovar' ? 'aprovou' : 'negou', texto, acao === 'aprovar' ? 4 : 3);
     }
     o.status = st;
   });
@@ -609,6 +615,7 @@ function getData() {
   return {
     sistema: NOME_SISTEMA,
     versao: { numero: VERSAO, data: VERSAO_DATA },
+    hoje: hojeISO_(),
     eu: {
       email: u.email, nome: u.nome, agencia: u.agencia, perfil: u.perfil, perm: u.perm, admin: u.admin, tecnico: u.tecnico,
       ve: u.ve, matriz: u.agencia === 'Matriz',

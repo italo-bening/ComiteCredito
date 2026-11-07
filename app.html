@@ -435,12 +435,13 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <div id="toastRaiz"></div>
 
 <script>
-const VERSAO_TELA = 2;
+const VERSAO_TELA = 3;
 
 /* =================== estado =================== */
 let DB = null, CARREGOU_EM = 0, OCUPADO = false;
 let ABA = '';
-const UI = { filtro: 'tarefas', busca: '', ag: '', vistaU: 'pessoas', buscaP: '', agP: '', menu: '' };
+let RESUMO = {};       /* decisões da diretoria nesta rodada da fila */
+const UI = { filtro: '', busca: '', ag: '', vistaU: 'pessoas', buscaP: '', agP: '', menu: '' };
 let F = null;          /* formulário da operação em edição */
 let FALTA = [];        /* campos marcados em vermelho no formulário */
 let PAINEL = null;     /* { tipo: 'op' | 'pessoa' | 'tipo', ... } */
@@ -619,68 +620,96 @@ const ETAPAS = [
   { nome: 'Diretoria', sub: 'Aprovação' },
   { nome: 'Liberação', sub: 'Atendente' }
 ];
-const ETAPA_DO_STATUS = { 'Rascunho': 0, 'Pendente': 0, 'Em análise': 1, 'Com o gerente': 2, 'Na diretoria': 3, 'Análise estendida': 3, 'Aprovada': 4, 'Liberada': 5, 'Reprovada': 3, 'Cancelada': -1 };
-const COR = { 'Rascunho': '', 'Pendente': 'wait', 'Em análise': 'info', 'Com o gerente': 'info', 'Na diretoria': 'info', 'Análise estendida': 'wait', 'Aprovada': 'ok', 'Liberada': 'ok', 'Reprovada': 'no', 'Cancelada': '' };
+const ETAPA_DO_STATUS = { 'Rascunho': 0, 'Pendente': 0, 'Em análise': 1, 'Com o gerente': 2, 'Na diretoria': 3, 'Aprovação posterior': 3, 'Aprovada': 4, 'Liberada': 5, 'Negada': 3, 'Cancelada': -1 };
+const COR = { 'Rascunho': '', 'Pendente': 'wait', 'Em análise': 'info', 'Com o gerente': 'info', 'Na diretoria': 'info', 'Aprovação posterior': 'wait', 'Aprovada': 'ok', 'Liberada': 'ok', 'Negada': 'no', 'Cancelada': '' };
 const tag = st => '<span class="tag ' + (COR[st] || '') + '">' + esc(st) + '</span>';
 function proximo(o) {
   return ({
     'Rascunho': 'Atendente envia para análise', 'Pendente': 'Atendente corrige a pendência',
-    'Em análise': 'Aguardando a análise', 'Com o gerente': 'Aguardando IAP e voto do gerente',
-    'Na diretoria': 'Aguardando a diretoria', 'Análise estendida': 'Diretoria decide em outro dia', 'Aprovada': 'Aguardando a liberação',
-    'Liberada': 'Liberada em ' + ((o.liberacao && o.liberacao.data) || ''), 'Reprovada': 'Encerrada', 'Cancelada': 'Encerrada'
+    'Em análise': 'Aguardando a análise', 'Com o gerente': 'Aguardando o IAP do gerente',
+    'Na diretoria': 'Aguardando a diretoria', 'Aprovação posterior': 'Diretoria decide depois', 'Aprovada': 'Aguardando a liberação',
+    'Liberada': 'Liberada em ' + ((o.liberacao && o.liberacao.data) || ''), 'Negada': 'Encerrada', 'Cancelada': 'Encerrada'
   })[o.status] || '';
 }
-const ehTarefa = o => (o.editar && (o.status === 'Pendente' || o.meu)) || o.analisar || o.votar || o.decidir || o.liberar;
+/* ficou para aprovação posterior HOJE: sai da fila de hoje e volta amanhã */
+const adiadaHoje = o => o.status === 'Aprovação posterior' && !!o.diretoria && o.diretoria.adiadaDia === DB.hoje;
+const ehTarefa = o => (o.editar && (o.status === 'Pendente' || o.meu)) || o.analisar || o.votar || (o.decidir && !adiadaHoje(o)) || o.liberar;
 const tarefas = () => DB.operacoes.filter(ehTarefa);
-const FILTROS = [
-  { id: 'tarefas', nome: 'Minhas tarefas', f: ehTarefa },
-  { id: 'analisadas', nome: 'Analisadas', f: o => !!(o.analise && o.analise.recomendacao) && o.status !== 'Em análise' },
-  { id: 'andamento', nome: 'Em andamento', f: o => ['Rascunho', 'Pendente', 'Em análise', 'Com o gerente', 'Na diretoria', 'Análise estendida'].indexOf(o.status) >= 0 },
-  { id: 'aprovadas', nome: 'Aprovadas', f: o => o.status === 'Aprovada' },
-  { id: 'liberadas', nome: 'Liberadas', f: o => o.status === 'Liberada' },
-  { id: 'encerradas', nome: 'Reprovadas e canceladas', f: o => o.status === 'Reprovada' || o.status === 'Cancelada' },
-  { id: 'todas', nome: 'Todas', f: () => true }
+const EM_CURSO = ['Em análise', 'Com o gerente', 'Na diretoria', 'Aprovação posterior'];
+/* listas de cada tipo de usuário: cada um vê só o que é do seu trabalho */
+const VISOES = [
+  { id: 'corrigir', perm: 'solicita', nome: 'Rascunhos e pendências', f: o => o.editar, fila: true },
+  { id: 'enviadas', perm: 'solicita', nome: 'Enviadas', f: o => EM_CURSO.indexOf(o.status) >= 0 },
+  { id: 'liberar', perm: 'libera', nome: 'Para liberar', f: o => o.liberar, fila: true },
+  { id: 'liberadas', perm: 'libera', nome: 'Liberadas', f: o => o.status === 'Liberada' },
+  { id: 'encerradas', perm: 'solicita', nome: 'Negadas e canceladas', f: o => o.status === 'Negada' || o.status === 'Cancelada' },
+  { id: 'analisar', perm: 'analisa', nome: 'Para analisar', f: o => o.analisar, fila: true },
+  { id: 'analisadas', perm: 'analisa', nome: 'Analisadas', f: o => !!(o.analise && o.analise.recomendacao) && o.status !== 'Em análise' },
+  { id: 'gerente', perm: 'vota', nome: 'Para enviar à diretoria', f: o => o.votar, fila: true },
+  { id: 'enviadasDir', perm: 'vota', nome: 'Enviadas à diretoria', f: o => !!(o.gerente && o.gerente.voto) && o.status !== 'Com o gerente' },
+  { id: 'aprovar', perm: 'aprova', nome: 'Pendentes de aprovação', f: o => o.decidir, fila: true },
+  { id: 'aprovadas', perm: 'aprova', nome: 'Aprovadas', f: o => o.status === 'Aprovada' || o.status === 'Liberada' },
+  { id: 'negadas', perm: 'aprova', nome: 'Negadas', f: o => o.status === 'Negada' },
+  { id: 'todas', perm: 'gerencia', nome: 'Todas', f: () => true }
 ];
+function visoes() {
+  const e = DB.eu;
+  const l = VISOES.filter(v => v.perm === 'gerencia' ? e.admin : e.perm[v.perm]);
+  return l.length ? l : [VISOES[VISOES.length - 1]];
+}
+function visaoAtual() {
+  const l = visoes();
+  let v = l.find(x => x.id === UI.filtro);
+  if (!v) { v = l.find(x => x.fila && DB.operacoes.some(x.f)) || l[0]; UI.filtro = v.id; }
+  return v;
+}
 
-/* lista da tela, na ordem mostrada. Minhas tarefas: por ordem de chegada (a mais antiga primeiro) */
-function listaVisivel() {
-  const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
+/* lista da tela, na ordem mostrada. Listas de trabalho: por ordem de chegada (a mais antiga primeiro).
+   Pendentes de aprovação: grupo 'hoje' (a fila) e grupo 'depois' (aprovação posterior marcada hoje) */
+function listaVisivel(grupo) {
+  const v = visaoAtual();
   const q = UI.busca.trim().toLowerCase();
-  const filtro = FILTROS.find(f => f.id === UI.filtro) || FILTROS[0];
-  const l = base.filter(filtro.f).filter(o => !q || String(o.cooperado).toLowerCase().indexOf(q) >= 0 ||
+  let l = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag).filter(v.f).filter(o => !q || String(o.cooperado).toLowerCase().indexOf(q) >= 0 ||
     String(o.numero_operacao).toLowerCase().indexOf(q) >= 0 || String(o.conta).toLowerCase().indexOf(q) >= 0 || String(o.n) === q);
-  return filtro.id === 'tarefas' ? l.sort(porChegada) : l;
+  if (v.id === 'aprovar') l = l.filter(o => grupo === 'depois' ? adiadaHoje(o) : !adiadaHoje(o));
+  return v.fila ? l.sort(porChegada) : l;
 }
 const porChegada = (a, b) => String(a.chegada || '').localeCompare(String(b.chegada || '')) || a.n - b.n;
 function quando(c) {
   const m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
   return m ? m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5] : '';
 }
+function itemOp(o, grupo) {
+  let prox = proximo(o);
+  if (o.status === 'Aprovação posterior' && o.diretoria && o.diretoria.adiadaEm && !adiadaHoje(o)) prox = 'Deixada para depois em ' + o.diretoria.adiadaEm.slice(0, 5);
+  else if (ehTarefa(o) && o.chegada) prox += ' ' + PT + ' desde ' + quando(o.chegada);
+  return '<button type="button" class="item' + (ehTarefa(o) ? ' tarefa' : '') + '" data-a="abrirOp" data-n="' + o.n + '" data-g="' + (grupo || '') + '">' +
+    '<span class="nro num"><small>' + NRO + '</small>' + o.n + '</span>' +
+    '<span class="mid"><b>' + esc(o.cooperado) + '</b><span class="sub">' + esc([o.conta ? 'Conta ' + o.conta : '', o.modalidade, labelAg(o.agencia), o.numero_operacao ? 'Mesa ' + o.numero_operacao : ''].filter(Boolean).join(' ' + PT + ' ')) + '</span></span>' +
+    '<span class="dir"><span class="val num">' + brl(o.valor) + (o.prazo ? ' <span class="muted small">em ' + o.prazo + 'x</span>' : '') + '</span>' + tag(o.status) +
+    '<span class="prox">' + esc(prox) + '</span></span></button>';
+}
 
 function telaOps() {
-  const e = DB.eu;
+  const e = DB.eu, v = visaoAtual(), lv = visoes();
   const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
-  const filtro = FILTROS.find(f => f.id === UI.filtro) || FILTROS[0];
-  const lista = listaVisivel();
+  const lista = listaVisivel(), depois = v.id === 'aprovar' ? listaVisivel('depois') : [];
   let h = '<div class="stack"><div class="row" style="justify-content:space-between"><h2 class="tit">Operações de crédito</h2>' +
     (e.perm.solicita ? '<button class="btn btn-primary" data-a="novaOp">' + ic('plus') + ' Nova operação</button>' : '') + '</div>';
-  h += '<div class="toolbar">' + FILTROS.map(f => {
-    const n = base.filter(f.f).length;
-    return '<button type="button" class="chip" data-a="filtro" data-id="' + f.id + '" aria-pressed="' + (f.id === filtro.id) + '">' + esc(f.nome) + (f.id !== 'todas' && n ? ' <span class="cnt">' + n + '</span>' : '') + '</button>';
+  if (lv.length > 1) h += '<div class="toolbar">' + lv.map(x => {
+    const n = x.id === 'aprovar' ? base.filter(o => x.f(o) && !adiadaHoje(o)).length : base.filter(x.f).length;
+    return '<button type="button" class="chip" data-a="filtro" data-id="' + x.id + '" aria-pressed="' + (x.id === v.id) + '">' + esc(x.nome) + (x.fila && n ? ' <span class="cnt">' + n + '</span>' : '') + '</button>';
   }).join('') + '</div>';
   h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaOps" placeholder="Buscar por cooperado, conta, número da operação' + RET + '" value="' + esc(UI.busca) + '"></div>';
   if (e.ve.length > 1) h += '<select class="in" id="agOps" style="width:auto" aria-label="Agência"><option value="">Todas as agências</option>' + e.ve.map(a => '<option value="' + a + '"' + (UI.ag === a ? ' selected' : '') + '>' + esc(labelAg(a)) + '</option>').join('') + '</select>';
   h += '</div>';
-  if (filtro.id === 'tarefas' && lista.length > 1) h += '<div class="muted small">' + ic('list-check') + ' Por ordem de chegada. Abra a primeira e use <b>Próxima</b> para seguir a fila sem fechar a janela.</div>';
+  if (v.fila && lista.length > 1) h += '<div class="muted small">' + ic('list-check') + ' Por ordem de chegada. Abra a primeira e vá decidindo: a próxima abre sozinha.</div>';
   if (!lista.length) {
-    h += '<div class="vazio">' + (filtro.id === 'tarefas' && !UI.busca.trim() ? ic('circle-check') + ' Nenhuma tarefa sua agora. Tudo em dia!' : 'Nenhuma operação encontrada.') + '</div>';
-  } else {
-    h += '<div class="lista">' + lista.map(o =>
-      '<button type="button" class="item' + (ehTarefa(o) ? ' tarefa' : '') + '" data-a="abrirOp" data-n="' + o.n + '">' +
-      '<span class="nro num"><small>' + NRO + '</small>' + o.n + '</span>' +
-      '<span class="mid"><b>' + esc(o.cooperado) + '</b><span class="sub">' + esc([o.conta ? 'Conta ' + o.conta : '', o.modalidade, labelAg(o.agencia), o.numero_operacao ? 'Mesa ' + o.numero_operacao : ''].filter(Boolean).join(' ' + PT + ' ')) + '</span></span>' +
-      '<span class="dir"><span class="val num">' + brl(o.valor) + (o.prazo ? ' <span class="muted small">em ' + o.prazo + 'x</span>' : '') + '</span>' + tag(o.status) +
-      '<span class="prox">' + esc(proximo(o)) + (ehTarefa(o) && o.chegada ? ' ' + PT + ' desde ' + quando(o.chegada) : '') + '</span></span></button>').join('') + '</div>';
+    h += '<div class="vazio">' + (v.fila && !UI.busca.trim() ? ic('circle-check') + (v.id === 'aprovar' ? ' Nenhuma operação pendente de aprovação hoje.' : ' Nada esperando por você agora. Tudo em dia!') : 'Nenhuma operação encontrada.') + '</div>';
+  } else h += '<div class="lista">' + lista.map(o => itemOp(o, 'hoje')).join('') + '</div>';
+  if (depois.length) {
+    h += '<h3 style="margin-top:8px">' + ic('stopwatch') + ' Aprovação posterior <span class="muted small" style="font-weight:500">' + PT + ' deixadas para decidir depois. Amanhã voltam para a fila.</span></h3>' +
+      '<div class="lista">' + depois.map(o => itemOp(o, 'depois')).join('') + '</div>';
   }
   return h + '</div>';
 }
@@ -868,9 +897,9 @@ function linhaTempo(o) {
   const ult = (o.historico || []).slice(-1)[0];
   let nota = '', notaNo = false;
   if (ult && /^devolveu/.test(ult.acao)) { nota = 'Devolvida por ' + ult.por + ' (' + ult.em + ')' + (ult.obs ? ': ' + ult.obs : ''); notaNo = true; }
-  else if (o.status === 'Análise estendida' && ult) nota = 'Análise estendida pedida por ' + ult.por + ' em ' + ult.em + (ult.obs ? ': ' + ult.obs : '');
+  else if (o.status === 'Aprovação posterior' && o.diretoria && o.diretoria.adiadaEm) nota = 'A diretoria vai decidir depois (' + o.diretoria.por + ', ' + o.diretoria.adiadaEm + ')' + (o.diretoria.texto ? ': ' + o.diretoria.texto : '');
   else nota = proximo(o);
-  if (o.status === 'Reprovada') { nota = 'Reprovada: ' + ((o.diretoria && o.diretoria.texto) || ''); notaNo = true; }
+  if (o.status === 'Negada') { nota = 'Negada: ' + ((o.diretoria && o.diretoria.texto) || ''); notaNo = true; }
   let parou = -1;
   if (o.status === 'Cancelada') {
     const c = (o.historico || []).filter(h => h.acao === 'cancelou').slice(-1)[0];
@@ -881,10 +910,10 @@ function linhaTempo(o) {
   return '<div class="tl">' + ETAPAS.map((e, i) => {
     let cl = '', bol = i + 1;
     if (o.status === 'Cancelada') { cl = i < parou ? 'feito' : i === parou ? 'parou' : ''; bol = i < parou ? ic('check') : i === parou ? ic('xmark') : i + 1; }
-    else if (o.status === 'Reprovada' && i === 3) { cl = 'falhou'; bol = ic('xmark'); }
+    else if (o.status === 'Negada' && i === 3) { cl = 'falhou'; bol = ic('xmark'); }
     else if (i < atual) { cl = 'feito'; bol = ic('check'); }
     else if (i === atual) cl = 'atual';
-    const eAtual = (o.status === 'Cancelada' && i === parou) || (o.status !== 'Cancelada' && (i === atual || (o.status === 'Reprovada' && i === 3)));
+    const eAtual = (o.status === 'Cancelada' && i === parou) || (o.status !== 'Cancelada' && (i === atual || (o.status === 'Negada' && i === 3)));
     return '<div class="et ' + cl + '"><span class="b">' + bol + '</span><div class="t"><b>' + e.nome + '</b><small>' + esc(info[i] || e.sub) + '</small>' +
       (eAtual && nota ? '<div class="nota' + (notaNo ? ' no' : '') + '">' + esc(nota) + '</div>' : '') + '</div></div>';
   }).join('') + '</div>';
@@ -988,11 +1017,11 @@ function blocoAcao(o) {
       bts: [bt('gerDevolver', 'btn-outline', 'arrow-left', 'Devolver para a análise'), bt('gerEnviar', 'btn-primary', 'paper-plane', 'Enviar à diretoria')] };
   }
   if (o.decidir) {
-    const b = [bt('dirDecide', 'btn-ghost', 'circle-xmark', 'Reprovar', 'reprovar'), bt('dirDecide', 'btn-outline', 'arrow-left', 'Devolver', 'devolver')];
-    if (o.status !== 'Análise estendida') b.push(bt('dirDecide', 'btn-outline', 'stopwatch', 'Análise estendida', 'estender'));
+    const b = [bt('dirDecide', 'btn-ghost', 'circle-xmark', 'Negar', 'reprovar'), bt('dirDecide', 'btn-outline', 'arrow-left', 'Devolver', 'devolver')];
+    if (!adiadaHoje(o)) b.push(bt('dirDecide', 'btn-outline', 'stopwatch', 'Aprovar depois', 'estender'));
     b.push(bt('dirDecide', 'btn-primary', 'circle-check', 'Aprovar', 'aprovar'));
     return { html: '<div class="bloco acao"><span class="cap">' + ic('building-columns') + ' Decisão da diretoria</span>' +
-      area('texto', 'Parecer da diretoria', 'Opcional. Só é obrigatório para reprovar.', false) + '</div>', bts: b };
+      area('texto', 'Parecer da diretoria', 'Opcional. Só é obrigatório para negar.', false) + '</div>', bts: b };
   }
   if (o.liberar) {
     if (A.data == null) A.data = hoje();
@@ -1157,9 +1186,18 @@ function segundoClique(btn) {
 /* =================== ações (cliques) =================== */
 const opDe = el => DB.operacoes.find(o => o.n === +el.getAttribute('data-n'));
 /* terminou uma operação: segue para a próxima da fila; se acabou, mostra o popup */
-function fimDaFila(o, titulo, texto, extra) {
+function fimDaFila(o, titulo, texto, extra, diretoria) {
   if (avancar(o.n, NRO + ' ' + o.n + ': ' + titulo.toLowerCase())) return;
-  popup({ tipo: /reprovada/i.test(titulo) ? 'warn' : 'ok', titulo: titulo, texto: (texto ? texto + ' ' : '') + 'Não há mais operações na sua fila.',
+  if (diretoria) {
+    const nomes = [['aprovar', 'Aprovadas'], ['reprovar', 'Negadas'], ['estender', 'Para aprovação posterior'], ['devolver', 'Devolvidas ao gerente']];
+    const det = nomes.filter(x => RESUMO[x[0]]).map(x => [x[1], String(RESUMO[x[0]])]);
+    const depois = DB.operacoes.filter(adiadaHoje).length;
+    popup({ tipo: 'ok', titulo: 'Acabaram as aprovações de hoje', texto: 'Todas as operações pendentes de hoje foram decididas.' +
+      (depois ? ' ' + depois + (depois > 1 ? ' ficaram' : ' ficou') + ' para aprovação posterior e ' + (depois > 1 ? 'voltam' : 'volta') + ' para a fila amanhã.' : ''), detalhes: det });
+    RESUMO = {};
+    return;
+  }
+  popup({ tipo: /negada/i.test(titulo) ? 'warn' : 'ok', titulo: titulo, texto: (texto ? texto + ' ' : '') + 'Não há mais operações na sua fila.',
     detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)]].concat(extra || []) });
 }
 const ACOES = {
@@ -1176,7 +1214,7 @@ const ACOES = {
   aba: el => { ABA = el.getAttribute('data-id'); UI.menu = ''; renderAbas(); renderConteudo(); window.scrollTo(0, 0); },
   filtro: el => { UI.filtro = el.getAttribute('data-id'); renderConteudo(); },
   novaOp: () => { F = formVazio(); FALTA = []; ABA = 'nova'; renderAbas(); renderConteudo(); },
-  abrirOp: el => abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n'), fila: listaVisivel().map(o => o.n) }),
+  abrirOp: el => { RESUMO = {}; abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n'), fila: listaVisivel(el.getAttribute('data-g') || 'hoje').map(o => o.n) }); },
   navOp: el => { const f = PAINEL.fila, i = f.indexOf(PAINEL.n) + +el.getAttribute('data-d'); if (f[i] != null) abrirPainel({ tipo: 'op', n: f[i], fila: f }, true); },
   fecharPainel: () => fecharPainel(),
 
@@ -1238,9 +1276,9 @@ const ACOES = {
   gerDevolver: el => { const o = opDe(el); acao('votarGerente', [o.n, { acao: 'devolver', parecer: A.parecer || '' }, o.rev], () => fimDaFila(o, 'Devolvida para a análise')); },
   dirDecide: el => {
     const o = opDe(el), v = el.getAttribute('data-v');
-    if (v === 'reprovar' && !String(A.texto || '').trim()) { popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Para reprovar, escreva o motivo no parecer da diretoria.' }); const t = $('#a_texto'); if (t) t.focus(); return; }
-    const t = { aprovar: 'Operação aprovada', reprovar: 'Operação reprovada', devolver: 'Devolvida ao gerente', estender: 'Em análise estendida' }[v];
-    acao('decidirDiretoria', [o.n, v, A.texto || '', o.rev], () => fimDaFila(o, t, v === 'aprovar' ? 'A agência já pode fazer a liberação.' : ''));
+    if (v === 'reprovar' && !String(A.texto || '').trim()) { popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Para negar, escreva o motivo no parecer da diretoria.' }); const t = $('#a_texto'); if (t) t.focus(); return; }
+    const t = { aprovar: 'Aprovada', reprovar: 'Negada', devolver: 'Devolvida ao gerente', estender: 'Ficou para aprovação posterior' }[v];
+    acao('decidirDiretoria', [o.n, v, A.texto || '', o.rev], () => { RESUMO[v] = (RESUMO[v] || 0) + 1; fimDaFila(o, t, '', null, true); });
   },
   liberarOp: el => {
     const o = opDe(el);

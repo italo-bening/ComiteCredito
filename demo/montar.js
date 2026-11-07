@@ -11,7 +11,7 @@ const simulador = `
 <script>
 /* ===== MODO DE TESTE: planilha simulada no navegador (não vai para o Apps Script) ===== */
 (function () {
-  const CHAVE = 'comite-demo-v2';
+  const CHAVE = 'comite-demo-v3';
   const PESSOAS = [
     ['italo@credisis.com.br', 'Italo (dev)'],
     ['ana@credisis.com.br', 'Ana · atendente 002'],
@@ -91,6 +91,17 @@ const simulador = `
     n = op(DEV, base('Agropecuária Vale Verde', '40551-3', '700107', 'Crédito rural', 250000, 60, 'Compra de matrizes', '003', true));
     como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'B', recomendacao: 'Favorável', parecer: '' });
     como(DEV, 'votarGerente', n, { acao: 'enviar', iap: '3,8' });
+    /* deixada para aprovação posterior ONTEM: hoje volta para a fila */
+    n = op(ANA, base('Construtora Alfa Ltda', '70440-1', '700108', 'Capital de giro', 90000, 36, 'Capital para nova obra', '002', true));
+    ateDiretoria(n, '2,2', 'Favorável com ressalvas', 'C');
+    como(EVA, 'decidirDiretoria', n, 'estender', 'Ver balanço atualizado');
+    (function () {
+      const d = estado.abas.Operacoes.d, h = d[0], l = d.find(x => +x[h.indexOf('n')] === n);
+      const dj = JSON.parse(l[h.indexOf('diretoria')]), ontem = new Date(Date.now() - 864e5);
+      dj.adiadaDia = formatDate(ontem, '', 'yyyy-MM-dd'); dj.adiadaEm = formatDate(ontem, '', 'dd/MM/yyyy HH:mm');
+      l[h.indexOf('diretoria')] = JSON.stringify(dj);
+      l[h.indexOf('chegada')] = formatDate(new Date(Date.now() - 2 * 864e5), '', 'yyyy-MM-dd HH:mm:ss');
+    })();
     /* 5: com o gerente */
     n = op(ANA, base('Fernanda Lima', '11873-2', '700103', 'Crédito pessoal', 8000, 12, 'Tratamento dentário'));
     como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'B', recomendacao: 'Favorável', parecer: 'Sem restrições.' });

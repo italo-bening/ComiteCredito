@@ -97,15 +97,15 @@ t('gerente devolve para a análise sem motivo e recebe de volta', () => {
 });
 t('gerente inclui IAP e envia (voto favorável automático)', () => { const r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '2,75', voto: 'Desfavorável' }); const o = op(r, N); igual(o.status, 'Na diretoria'); igual(o.gerente.iap, 2.75); igual(o.gerente.voto, 'Favorável'); });
 t('gerente não aprova', () => barra(() => como(GE, 'decidirDiretoria', N, 'aprovar', '', null), 'não aprova'));
-t('reprovar sem motivo é recusado', () => barra(() => como(DI, 'decidirDiretoria', N, 'reprovar', '', null), 'motivo'));
+t('negar sem motivo é recusado', () => barra(() => como(DI, 'decidirDiretoria', N, 'reprovar', '', null), 'motivo para negar'));
 t('diretoria devolve ao gerente sem motivo e ele reenvia', () => {
   let r = como(DI, 'decidirDiretoria', N, 'devolver', '', null); igual(op(r, N).status, 'Com o gerente');
   r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '3' }); igual(op(r, N).status, 'Na diretoria');
 });
-t('análise estendida mantém a ordem de chegada', () => {
+t('aprovação posterior mantém a ordem de chegada', () => {
   const antes = op(como(DI, 'getData'), N).chegada;
-  let r = como(DI, 'decidirDiretoria', N, 'estender', '', null); igual(op(r, N).status, 'Análise estendida'); igual(op(r, N).chegada, antes); igual(op(r, N).decidir, true);
-  barra(() => como(DI, 'decidirDiretoria', N, 'estender', '', null), 'já está');
+  let r = como(DI, 'decidirDiretoria', N, 'estender', '', null); igual(op(r, N).status, 'Aprovação posterior'); igual(op(r, N).diretoria.adiadaDia, r.hoje); igual(op(r, N).chegada, antes); igual(op(r, N).decidir, true);
+  barra(() => como(DI, 'decidirDiretoria', N, 'estender', '', null), 'já ficou');
 });
 t('ver como: diretoria não aprova no modo Ver como', () => {
   como(DEV, 'verComo', 'Matriz', 'diretoria');
@@ -114,6 +114,12 @@ t('ver como: diretoria não aprova no modo Ver como', () => {
   como(DEV, 'sairVerComo'); igual(como(DEV, 'getData').eu.verComo, null);
 });
 t('admin de agência não vê como Matriz nem dev', () => { barra(() => como(AD2, 'verComo', 'Matriz', 'usuario'), 'não pode'); barra(() => como(AD2, 'verComo', '002', 'dev'), 'não pode'); });
+t('negar uma operação', () => {
+  const k = como(AT2, 'salvarOperacao', Object.assign({}, OP, { enviar: true })).ultimo;
+  como(AN, 'analisarOperacao', k, { acao: 'concluir', itens: ITENS, recomendacao: 'Desfavorável' });
+  como(GE, 'votarGerente', k, { acao: 'enviar', iap: '1' });
+  const r = como(DI, 'decidirDiretoria', k, 'reprovar', 'Sem capacidade', null); igual(op(r, k).status, 'Negada'); igual(op(r, k).historico.slice(-1)[0].acao, 'negou');
+});
 t('diretoria aprova', () => { const r = como(DI, 'decidirDiretoria', N, 'aprovar', 'Aprovado em comitê', null); igual(op(r, N).status, 'Aprovada'); igual(op(r, N).diretoria.decisao, 'Aprovada'); });
 t('gerente não libera', () => barra(() => como(GE, 'liberarOperacao', N, { data: '07/11/2026' }), 'não libera'));
 t('gerente com acesso de atendente: trocar de acesso e liberar', () => {
