@@ -41,7 +41,8 @@ function criar() {
       getProperty: k => (k in estado.props ? estado.props[k] : null),
       setProperty: (k, v) => { estado.props[k] = String(v); }, deleteProperty: k => { delete estado.props[k]; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
-    Utilities: { formatDate: (d, tz, f) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}` },
+    Utilities: { formatDate: (d, tz, f) => f.replace('yyyy', d.getFullYear()).replace('MM', pad(d.getMonth() + 1)).replace('dd', pad(d.getDate()))
+      .replace('HH', pad(d.getHours())).replace('mm', pad(d.getMinutes())).replace('ss', pad(d.getSeconds())) },
     HtmlService: { createHtmlOutput: () => ({ setFaviconUrl() {} }), XFrameOptionsMode: { ALLOWALL: 1 } },
     ScriptApp: { getScriptId: () => 'SCRIPTID' },
     Logger: { log: m => estado.logs.push(String(m)) }

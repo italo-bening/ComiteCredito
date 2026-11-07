@@ -11,7 +11,7 @@ const simulador = `
 <script>
 /* ===== MODO DE TESTE: planilha simulada no navegador (não vai para o Apps Script) ===== */
 (function () {
-  const CHAVE = 'comite-demo-v1';
+  const CHAVE = 'comite-demo-v2';
   const PESSOAS = [
     ['italo@credisis.com.br', 'Italo (dev)'],
     ['ana@credisis.com.br', 'Ana · atendente 002'],
@@ -41,14 +41,16 @@ const simulador = `
   const ss = { getSheetByName: n => estado.abas[n] || null, insertSheet: n => (estado.abas[n] = sheet([])),
     getUrl: () => 'https:' + '\\/\\/docs.google.com/spreadsheets', getName: () => 'Planilha de teste' };
   const dv = () => { const o = {}; ['requireValueInList', 'requireValueInRange', 'setAllowInvalid'].forEach(k => { o[k] = () => o; }); o.build = () => ({}); return o; };
-  const fmt = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Porto_Velho', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Porto_Velho', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const formatDate = (d, tz, f) => { const p = {}; fmt.formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    return f.replace('yyyy', p.year).replace('MM', p.month).replace('dd', p.day).replace('HH', p.hour === '24' ? '00' : p.hour).replace('mm', p.minute).replace('ss', p.second); };
   const M = {
     SpreadsheetApp: { getActive: () => ss, newDataValidation: dv },
     Session: { getActiveUser: () => ({ getEmail: () => estado.email }), getEffectiveUser: () => ({ getEmail: () => estado.email }) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in estado.props ? estado.props[k] : null),
       setProperty: (k, v) => { estado.props[k] = String(v); }, deleteProperty: k => { delete estado.props[k]; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
-    Utilities: { formatDate: d => fmt.format(d).replace(',', '') },
+    Utilities: { formatDate: formatDate },
     HtmlService: { createHtmlOutput: () => ({ setFaviconUrl() {} }), XFrameOptionsMode: {} },
     ScriptApp: { getScriptId: () => 'TESTE' },
     Logger: { log: m => console.log(m) }
@@ -71,28 +73,33 @@ const simulador = `
     como(DEV, 'salvarLinks', { linkLogo: '', atalhos: [{ nome: 'Manual de crédito', link: 'https:' + '\\/\\/drive.google.com', descricao: 'Regras e alçadas' }] });
     const ck = { spc: true, scr: true, cadastro: true, renda: true, documentos: true, proposta: true };
     const op = (quem, x) => como(quem, 'salvarOperacao', Object.assign({ enviar: true, checklist: ck }, x)).ultimo;
-    const base = (coop, doc, mesa, mod, valor, prazo, fin, ag) => ({ cooperado: coop, documento: doc, numero_operacao: mesa, modalidade: mod, valor: valor, prazo: prazo, agencia: ag || '002',
-      dados: { finalidade: fin, tem_avalista: 'não', avalistas: [], tem_garantia: 'sim', garantias: [{ tipo: 'Alienação fiduciária de veículo', descricao: 'Veículo do cooperado', valor: valor }] } });
+    const base = (coop, conta, mesa, mod, valor, prazo, fin, ag, aval) => ({ cooperado: coop, conta: conta, numero_operacao: mesa, modalidade: mod, valor: valor, prazo: prazo, agencia: ag || '002',
+      dados: { finalidade: fin, tem_avalista: aval ? 'sim' : 'não', tem_garantia: 'sim' } });
     const itens = { capacidade: 'ok', restricoes: 'ok', endividamento: 'ok', garantias: 'ok', documentacao: 'ok' };
+    const ateDiretoria = (n, iap, rec, risco) => { como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: risco, recomendacao: rec, parecer: '' }); como(DAV, 'votarGerente', n, { acao: 'enviar', iap: iap }); };
     /* 1: liberada */
-    let n = op(ANA, base('José Pereira', '52998224725', '700101', 'Financiamento de veículo', 38000, 36, 'Compra de carro usado'));
-    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'A', recomendacao: 'Favorável', parecer: 'Renda compatível.' });
-    como(DAV, 'votarGerente', n, { acao: 'enviar', iap: '3,1', voto: 'Favorável', parecer: '' });
-    como(EVA, 'decidirDiretoria', n, 'aprovar', 'Aprovado.');
+    let n = op(ANA, base('José Pereira', '10234-5', '700101', 'Financiamento de veículo', 38000, 36, 'Compra de carro usado'));
+    ateDiretoria(n, '3,1', 'Favorável', 'A');
+    como(EVA, 'decidirDiretoria', n, 'aprovar', '');
     como(ANA, 'liberarOperacao', n, { data: '05/11/2026', contrato: 'CT-0001', obs: '' });
-    /* 2: na diretoria */
-    n = op(ANA, base('Mercado Bom Preço Ltda', '11222333000181', '700102', 'Capital de giro', 120000, 24, 'Estoque para o fim de ano'));
-    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: Object.assign({}, itens, { endividamento: 'nok' }), risco: 'C', recomendacao: 'Favorável com ressalvas', parecer: 'Endividamento alto no SCR, mas faturamento cobre.' });
-    como(DAV, 'votarGerente', n, { acao: 'enviar', iap: '2,4', voto: 'Favorável', parecer: 'Cliente antigo.' });
-    /* 3: com o gerente */
-    n = op(ANA, base('Fernanda Lima', '39053344705', '700103', 'Crédito pessoal', 8000, 12, 'Tratamento dentário'));
+    /* 2, 3 e 4: fila da diretoria (por ordem de chegada) */
+    n = op(ANA, base('Mercado Bom Preço Ltda', '20871-0', '700102', 'Capital de giro', 120000, 24, 'Estoque para o fim de ano', '002', true));
+    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: Object.assign({}, itens, { endividamento: 'nok' }), risco: 'C', recomendacao: 'Favorável com ressalvas', parecer: 'Endividamento alto no SCR, mas o faturamento cobre.' });
+    como(DAV, 'votarGerente', n, { acao: 'enviar', iap: '2,4', parecer: 'Cliente antigo.' });
+    n = op(ANA, base('Luiz Carvalho', '30112-8', '700106', 'Crédito pessoal', 12000, 18, 'Reforma da cozinha'));
+    ateDiretoria(n, '2,9', 'Favorável', 'B');
+    n = op(DEV, base('Agropecuária Vale Verde', '40551-3', '700107', 'Crédito rural', 250000, 60, 'Compra de matrizes', '003', true));
+    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'B', recomendacao: 'Favorável', parecer: '' });
+    como(DEV, 'votarGerente', n, { acao: 'enviar', iap: '3,8' });
+    /* 5: com o gerente */
+    n = op(ANA, base('Fernanda Lima', '11873-2', '700103', 'Crédito pessoal', 8000, 12, 'Tratamento dentário'));
     como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'B', recomendacao: 'Favorável', parecer: 'Sem restrições.' });
-    /* 4: em análise (agência 003) */
-    op(BIA, base('Antônio Rocha', '11144477735', '700104', 'Crédito rural', 60000, 48, 'Custeio da safra', '003'));
-    /* 5: pendente */
-    n = op(ANA, base('Paulo Mendes', '86288366757', '700105', 'Consignado', 15000, 48, 'Quitar outra dívida'));
+    /* 6: em análise (agência 003) */
+    op(BIA, base('Antônio Rocha', '50020-9', '700104', 'Crédito rural', 60000, 48, 'Custeio da safra', '003'));
+    /* 7: pendente */
+    n = op(ANA, base('Paulo Mendes', '60317-4', '700105', 'Consignado', 15000, 48, 'Quitar outra dívida'));
     como(CAR, 'analisarOperacao', n, { acao: 'pendencia', parecer: 'Falta o contracheque dos últimos 3 meses.' });
-    /* 6: rascunho */
+    /* 8: rascunho */
     como(ANA, 'salvarOperacao', { cooperado: 'Rita Souza', agencia: '002' });
     guardar();
   }

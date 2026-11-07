@@ -246,6 +246,7 @@ textarea.in { height: auto; min-height: 84px; padding: 10px 12px; resize: vertic
 .secao > .hd .bola { width: 10px; height: 10px; border-radius: 50%; background: var(--g2); }
 .secao > .hd h3 { flex: 1; }
 .contador { padding: 2px 10px; border-radius: var(--pill); background: var(--card); border: 1px solid var(--border); font-size: 12px; font-weight: 700; color: var(--muted); }
+.contador:empty { display: none; }
 .contador.ok { background: var(--done); border-color: var(--done); color: #fff; }
 .secao > .bx { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px; }
 .barra { height: 6px; border-radius: var(--pill); background: var(--surface); overflow: hidden; }
@@ -280,6 +281,18 @@ textarea.in { height: auto; min-height: 84px; padding: 10px 12px; resize: vertic
   background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4);
   border: 1px solid var(--glass-line); border-radius: var(--r-lg); box-shadow: var(--sh-float); }
 .novo .painel { animation: entra .3s ease; }
+.painel.centro { top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); width: min(980px, calc(100vw - 24px)); height: min(860px, calc(100vh - 24px)); }
+.novo .painel.centro { animation: zoom .25s ease; }
+@keyframes zoom { from { opacity: 0; transform: translate(-50%, -48%) scale(.97); } }
+.opgrid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; align-items: start; }
+.opgrid .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 860px) { .opgrid { grid-template-columns: 1fr; } }
+.painel .pf.op { justify-content: space-between; align-items: center; }
+.fila { display: flex; align-items: center; gap: 4px; }
+.fila .pos { font-size: 12.5px; color: var(--muted); padding: 0 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bts-acao { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.sn { display: flex; gap: 24px; flex-wrap: wrap; }
+.sn b { margin-left: 4px; }
 :root:not([data-theme="dark"]) .painel { background: color-mix(in srgb, var(--bg) 90%, transparent); }
 @keyframes entra { from { transform: translateX(30px); opacity: 0; } }
 .painel .ph { position: relative; padding: 18px 56px 18px 20px; color: #fff; background: var(--grad); }
@@ -422,7 +435,7 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <div id="toastRaiz"></div>
 
 <script>
-const VERSAO_TELA = 1;
+const VERSAO_TELA = 2;
 
 /* =================== estado =================== */
 let DB = null, CARREGOU_EM = 0, OCUPADO = false;
@@ -445,12 +458,6 @@ const dig = s => String(s == null ? '' : s).replace(/\D/g, '');
 const iniciais = n => String(n || '?').trim().split(/\s+/).filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
 const labelAg = a => a === 'Matriz' ? 'Matriz' : 'Agência ' + a;
 const nomePerfil = p => { const x = DB && DB.perfis.find(t => t.perfil === p); return x ? x.nome : p; };
-function fmtDoc(d) {
-  d = dig(d);
-  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  return d;
-}
 function hoje() { const d = new Date(), p = n => (n < 10 ? '0' : '') + n; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
 
 window.__ctx = () => ({
@@ -612,14 +619,14 @@ const ETAPAS = [
   { nome: 'Diretoria', sub: 'Aprovação' },
   { nome: 'Liberação', sub: 'Atendente' }
 ];
-const ETAPA_DO_STATUS = { 'Rascunho': 0, 'Pendente': 0, 'Em análise': 1, 'Com o gerente': 2, 'Na diretoria': 3, 'Aprovada': 4, 'Liberada': 5, 'Reprovada': 3, 'Cancelada': -1 };
-const COR = { 'Rascunho': '', 'Pendente': 'wait', 'Em análise': 'info', 'Com o gerente': 'info', 'Na diretoria': 'info', 'Aprovada': 'ok', 'Liberada': 'ok', 'Reprovada': 'no', 'Cancelada': '' };
+const ETAPA_DO_STATUS = { 'Rascunho': 0, 'Pendente': 0, 'Em análise': 1, 'Com o gerente': 2, 'Na diretoria': 3, 'Análise estendida': 3, 'Aprovada': 4, 'Liberada': 5, 'Reprovada': 3, 'Cancelada': -1 };
+const COR = { 'Rascunho': '', 'Pendente': 'wait', 'Em análise': 'info', 'Com o gerente': 'info', 'Na diretoria': 'info', 'Análise estendida': 'wait', 'Aprovada': 'ok', 'Liberada': 'ok', 'Reprovada': 'no', 'Cancelada': '' };
 const tag = st => '<span class="tag ' + (COR[st] || '') + '">' + esc(st) + '</span>';
 function proximo(o) {
   return ({
     'Rascunho': 'Atendente envia para análise', 'Pendente': 'Atendente corrige a pendência',
     'Em análise': 'Aguardando a análise', 'Com o gerente': 'Aguardando IAP e voto do gerente',
-    'Na diretoria': 'Aguardando a diretoria', 'Aprovada': 'Aguardando a liberação',
+    'Na diretoria': 'Aguardando a diretoria', 'Análise estendida': 'Diretoria decide em outro dia', 'Aprovada': 'Aguardando a liberação',
     'Liberada': 'Liberada em ' + ((o.liberacao && o.liberacao.data) || ''), 'Reprovada': 'Encerrada', 'Cancelada': 'Encerrada'
   })[o.status] || '';
 }
@@ -627,56 +634,69 @@ const ehTarefa = o => (o.editar && (o.status === 'Pendente' || o.meu)) || o.anal
 const tarefas = () => DB.operacoes.filter(ehTarefa);
 const FILTROS = [
   { id: 'tarefas', nome: 'Minhas tarefas', f: ehTarefa },
-  { id: 'andamento', nome: 'Em andamento', f: o => ['Rascunho', 'Pendente', 'Em análise', 'Com o gerente', 'Na diretoria'].indexOf(o.status) >= 0 },
+  { id: 'analisadas', nome: 'Analisadas', f: o => !!(o.analise && o.analise.recomendacao) && o.status !== 'Em análise' },
+  { id: 'andamento', nome: 'Em andamento', f: o => ['Rascunho', 'Pendente', 'Em análise', 'Com o gerente', 'Na diretoria', 'Análise estendida'].indexOf(o.status) >= 0 },
   { id: 'aprovadas', nome: 'Aprovadas', f: o => o.status === 'Aprovada' },
   { id: 'liberadas', nome: 'Liberadas', f: o => o.status === 'Liberada' },
   { id: 'encerradas', nome: 'Reprovadas e canceladas', f: o => o.status === 'Reprovada' || o.status === 'Cancelada' },
   { id: 'todas', nome: 'Todas', f: () => true }
 ];
 
+/* lista da tela, na ordem mostrada. Minhas tarefas: por ordem de chegada (a mais antiga primeiro) */
+function listaVisivel() {
+  const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
+  const q = UI.busca.trim().toLowerCase();
+  const filtro = FILTROS.find(f => f.id === UI.filtro) || FILTROS[0];
+  const l = base.filter(filtro.f).filter(o => !q || String(o.cooperado).toLowerCase().indexOf(q) >= 0 ||
+    String(o.numero_operacao).toLowerCase().indexOf(q) >= 0 || String(o.conta).toLowerCase().indexOf(q) >= 0 || String(o.n) === q);
+  return filtro.id === 'tarefas' ? l.sort(porChegada) : l;
+}
+const porChegada = (a, b) => String(a.chegada || '').localeCompare(String(b.chegada || '')) || a.n - b.n;
+function quando(c) {
+  const m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
+  return m ? m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5] : '';
+}
+
 function telaOps() {
   const e = DB.eu;
   const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
-  const q = UI.busca.trim().toLowerCase(), qd = dig(q);
   const filtro = FILTROS.find(f => f.id === UI.filtro) || FILTROS[0];
-  const lista = base.filter(filtro.f).filter(o => !q ||
-    String(o.cooperado).toLowerCase().indexOf(q) >= 0 || String(o.numero_operacao).toLowerCase().indexOf(q) >= 0 ||
-    (qd && (o.documento.indexOf(qd) >= 0 || String(o.n) === qd)));
+  const lista = listaVisivel();
   let h = '<div class="stack"><div class="row" style="justify-content:space-between"><h2 class="tit">Operações de crédito</h2>' +
     (e.perm.solicita ? '<button class="btn btn-primary" data-a="novaOp">' + ic('plus') + ' Nova operação</button>' : '') + '</div>';
   h += '<div class="toolbar">' + FILTROS.map(f => {
     const n = base.filter(f.f).length;
     return '<button type="button" class="chip" data-a="filtro" data-id="' + f.id + '" aria-pressed="' + (f.id === filtro.id) + '">' + esc(f.nome) + (f.id !== 'todas' && n ? ' <span class="cnt">' + n + '</span>' : '') + '</button>';
   }).join('') + '</div>';
-  h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaOps" placeholder="Buscar por cooperado, CPF/CNPJ, número da operação' + RET + '" value="' + esc(UI.busca) + '"></div>';
+  h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaOps" placeholder="Buscar por cooperado, conta, número da operação' + RET + '" value="' + esc(UI.busca) + '"></div>';
   if (e.ve.length > 1) h += '<select class="in" id="agOps" style="width:auto" aria-label="Agência"><option value="">Todas as agências</option>' + e.ve.map(a => '<option value="' + a + '"' + (UI.ag === a ? ' selected' : '') + '>' + esc(labelAg(a)) + '</option>').join('') + '</select>';
   h += '</div>';
+  if (filtro.id === 'tarefas' && lista.length > 1) h += '<div class="muted small">' + ic('list-check') + ' Por ordem de chegada. Abra a primeira e use <b>Próxima</b> para seguir a fila sem fechar a janela.</div>';
   if (!lista.length) {
-    h += '<div class="vazio">' + (filtro.id === 'tarefas' && !q ? ic('circle-check') + ' Nenhuma tarefa sua agora. Tudo em dia!' : 'Nenhuma operação encontrada.') + '</div>';
+    h += '<div class="vazio">' + (filtro.id === 'tarefas' && !UI.busca.trim() ? ic('circle-check') + ' Nenhuma tarefa sua agora. Tudo em dia!' : 'Nenhuma operação encontrada.') + '</div>';
   } else {
     h += '<div class="lista">' + lista.map(o =>
       '<button type="button" class="item' + (ehTarefa(o) ? ' tarefa' : '') + '" data-a="abrirOp" data-n="' + o.n + '">' +
       '<span class="nro num"><small>' + NRO + '</small>' + o.n + '</span>' +
-      '<span class="mid"><b>' + esc(o.cooperado) + '</b><span class="sub">' + esc([fmtDoc(o.documento), o.modalidade, labelAg(o.agencia), o.numero_operacao ? 'Mesa ' + o.numero_operacao : ''].filter(Boolean).join(' ' + PT + ' ')) + '</span></span>' +
-      '<span class="dir"><span class="val num">' + brl(o.valor) + (o.prazo ? ' <span class="muted small">em ' + o.prazo + 'x</span>' : '') + '</span>' + tag(o.status) + '<span class="prox">' + esc(proximo(o)) + '</span></span></button>').join('') + '</div>';
+      '<span class="mid"><b>' + esc(o.cooperado) + '</b><span class="sub">' + esc([o.conta ? 'Conta ' + o.conta : '', o.modalidade, labelAg(o.agencia), o.numero_operacao ? 'Mesa ' + o.numero_operacao : ''].filter(Boolean).join(' ' + PT + ' ')) + '</span></span>' +
+      '<span class="dir"><span class="val num">' + brl(o.valor) + (o.prazo ? ' <span class="muted small">em ' + o.prazo + 'x</span>' : '') + '</span>' + tag(o.status) +
+      '<span class="prox">' + esc(proximo(o)) + (ehTarefa(o) && o.chegada ? ' ' + PT + ' desde ' + quando(o.chegada) : '') + '</span></span></button>').join('') + '</div>';
   }
   return h + '</div>';
 }
 
 /* =================== formulário da operação =================== */
 function formVazio() {
-  return { n: null, rev: null, status: '', agencia: DB ? DB.eu.agencia : '', cooperado: '', documento: '', conta: '', numero_operacao: '', modalidade: '', valor: '', prazo: '',
-    checklist: {}, dados: { finalidade: '', observacao: '', tem_avalista: '', avalistas: [{ nome: '', documento: '' }], tem_garantia: '', garantias: [{ tipo: '', descricao: '', valor: '' }] } };
+  return { n: null, rev: null, status: '', agencia: DB ? DB.eu.agencia : '', cooperado: '', conta: '', numero_operacao: '', modalidade: '', valor: '', prazo: '',
+    checklist: {}, dados: { finalidade: '', observacao: '', tem_avalista: '', tem_garantia: '' } };
 }
 function formDe(o) {
   const v = n => n ? (+n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
   const d = o.dados || {};
-  return { n: o.n, rev: o.rev, status: o.status, agencia: o.agencia, cooperado: o.cooperado || '', documento: fmtDoc(o.documento), conta: o.conta || '',
+  return { n: o.n, rev: o.rev, status: o.status, agencia: o.agencia, cooperado: o.cooperado || '', conta: o.conta || '',
     numero_operacao: o.numero_operacao || '', modalidade: o.modalidade || '', valor: v(o.valor), prazo: o.prazo ? String(o.prazo) : '',
-    checklist: Object.assign({}, o.checklist), pendencia: o.analise && o.analise.pendencia, ultimaObs: ultimaDevolucao(o),
-    dados: { finalidade: d.finalidade || '', observacao: d.observacao || '', tem_avalista: d.tem_avalista || '', tem_garantia: d.tem_garantia || '',
-      avalistas: (d.avalistas && d.avalistas.length ? d.avalistas : [{ nome: '', documento: '' }]).map(a => ({ nome: a.nome, documento: fmtDoc(a.documento) })),
-      garantias: (d.garantias && d.garantias.length ? d.garantias : [{ tipo: '', descricao: '', valor: '' }]).map(g => ({ tipo: g.tipo, descricao: g.descricao, valor: v(g.valor) })) } };
+    checklist: Object.assign({}, o.checklist), ultimaObs: ultimaDevolucao(o),
+    dados: { finalidade: d.finalidade || '', observacao: d.observacao || '', tem_avalista: d.tem_avalista || '', tem_garantia: d.tem_garantia || '' } };
 }
 function ultimaDevolucao(o) {
   const h = (o.historico || []).slice().reverse().find(x => /^devolveu/.test(x.acao));
@@ -692,7 +712,7 @@ function campo(rot, path, opt) {
   let inp;
   if (opt.tipo === 'select') inp = '<select class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '"><option value="">Escolha' + RET + '</option>' + opt.lista.map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>';
   else if (opt.tipo === 'area') inp = '<textarea class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '" maxlength="' + (opt.max || 2000) + '" placeholder="' + esc(opt.ph || '') + '">' + esc(v) + '</textarea>';
-  else inp = '<input class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '" value="' + esc(v) + '"' + (opt.mask ? ' data-mask="' + opt.mask + '" inputmode="' + (opt.mask === 'doc' || opt.mask === 'int' || opt.mask === 'data' ? 'numeric' : 'decimal') + '"' : '') + (opt.check ? ' data-check="' + opt.check + '"' : '') + ' maxlength="' + (opt.max || 150) + '" placeholder="' + esc(opt.ph || '') + '" autocomplete="off">';
+  else inp = '<input class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '" value="' + esc(v) + '"' + (opt.mask ? ' data-mask="' + opt.mask + '" inputmode="' + (opt.mask === 'int' || opt.mask === 'data' ? 'numeric' : 'decimal') + '"' : '') + (opt.check ? ' data-check="' + opt.check + '"' : '') + ' maxlength="' + (opt.max || 150) + '" placeholder="' + esc(opt.ph || '') + '" autocomplete="off">';
   return '<div class="campo' + (opt.full ? ' full' : '') + (err ? ' erro' : '') + '" data-campo="' + path + '"><label for="f_' + path + '">' + esc(rot) + (opt.ob ? ' <span class="ob">*</span>' : '') + '</label>' + inp +
     (err ? '<span class="msgerro">' + ic('circle-xmark') + ' ' + esc(opt.msg || 'Preencha este campo.') + '</span>' : '') + '</div>';
 }
@@ -717,7 +737,7 @@ function telaForm() {
   h += '<div class="row" style="justify-content:space-between"><h2 class="tit">' + (F.n ? 'Corrigir operação ' + NRO + ' ' + F.n : 'Nova operação de crédito') + '</h2>' +
     (F.n ? '<span>' + tag(F.status) + '</span>' : '') + '</div>';
   h += '<div class="card">' + passos(0) + '</div>';
-  if (F.ultimaObs) h += '<div class="aviso">' + ic('triangle-exclamation') + '<div><b>Devolvida por ' + esc(F.ultimaObs.por) + ' em ' + esc(F.ultimaObs.em) + '</b><div class="texto">' + esc(F.ultimaObs.obs) + '</div></div></div>';
+  if (F.ultimaObs) h += '<div class="aviso">' + ic('triangle-exclamation') + '<div><b>Devolvida por ' + esc(F.ultimaObs.por) + ' em ' + esc(F.ultimaObs.em) + '</b>' + (F.ultimaObs.obs ? '<div class="texto">' + esc(F.ultimaObs.obs) + '</div>' : '') + '</div></div>';
   h += '<div class="barra" title="Preenchimento"><div id="barraF" style="width:0"></div></div>';
 
   let ag = '';
@@ -725,9 +745,8 @@ function telaForm() {
     ag = '<div class="campo full"><span class="lb">Agência da operação <span class="ob">*</span></span><div class="row">' + e.ve.map(a => '<button type="button" class="chip" data-a="fset" data-p="agencia" data-v="' + a + '" aria-pressed="' + (F.agencia === a) + '">' + esc(labelAg(a)) + '</button>').join('') + '</div></div>';
   }
   h += secao('coop', 'Cooperado', '<div class="grid2">' +
-    campo('Nome do cooperado', 'cooperado', { ob: true, full: true, ph: 'Nome completo ou razão social' }) +
-    campo('CPF ou CNPJ', 'documento', { ob: true, mask: 'doc', check: 'doc', max: 18, ph: '000.000.000-00', msg: 'CPF ou CNPJ inválido. Confira os números.' }) +
-    campo('Conta corrente', 'conta', { max: 30 }) + '</div>');
+    campo('Nome do cooperado', 'cooperado', { ob: true, ph: 'Nome completo ou razão social' }) +
+    campo('Número da conta', 'conta', { ob: true, max: 30, ph: 'Ex.: 12345-6' }) + '</div>');
   h += secao('op', 'Operação (mesa de negócios)', '<div class="grid2">' + ag +
     campo('Número da operação na mesa de negócios', 'numero_operacao', { ob: true, max: 40, ph: 'Ex.: 123456' }) +
     campo('Modalidade', 'modalidade', { ob: true, tipo: 'select', lista: L.modalidades }) +
@@ -738,25 +757,9 @@ function telaForm() {
     const err = FALTA.indexOf('checklist.' + c.id) >= 0;
     return '<label class="chk' + (err ? ' erro' : '') + '" data-campo="checklist.' + c.id + '"><input type="checkbox" data-fc="' + c.id + '"' + (F.checklist[c.id] ? ' checked' : '') + '><span>' + esc(c.nome) + (c.obrig ? ' <span class="ob" style="color:var(--danger)">*</span>' : ' <span class="muted small">(se tiver)</span>') + '</span></label>';
   }).join(''));
-  let av = '<div class="campo"><span class="lb">O cooperado possui avalista? <span class="ob">*</span></span>' + simNao('dados.tem_avalista') + '</div>';
-  if (F.dados.tem_avalista === 'sim') {
-    av += '<div style="margin-top:12px">' + F.dados.avalistas.map((a, i) => '<div class="linha"><div class="grid3" style="grid-template-columns:2fr 1.3fr auto">' +
-      campo('Nome do avalista ' + (i + 1), 'dados.avalistas.' + i + '.nome', { ob: i === 0 }) +
-      campo('CPF/CNPJ', 'dados.avalistas.' + i + '.documento', { ob: i === 0, mask: 'doc', check: 'doc', max: 18, ph: '000.000.000-00', msg: 'CPF ou CNPJ inválido.' }) +
-      (F.dados.avalistas.length > 1 ? '<button type="button" class="btn btn-ghost" data-a="fdel" data-p="dados.avalistas" data-i="' + i + '" aria-label="Remover avalista" title="Remover avalista">' + ic('trash') + '</button>' : '<span></span>') +
-      '</div></div>').join('') + (F.dados.avalistas.length < 5 ? '<button type="button" class="btn btn-outline btn-sm" data-a="fadd" data-p="dados.avalistas">' + ic('plus') + ' Adicionar avalista</button>' : '') + '</div>';
-  }
-  h += secao('aval', 'Avalista', av);
-  let gr = '<div class="campo"><span class="lb">A operação tem garantia? <span class="ob">*</span></span>' + simNao('dados.tem_garantia') + '</div>';
-  if (F.dados.tem_garantia === 'sim') {
-    gr += '<div style="margin-top:12px">' + F.dados.garantias.map((g, i) => '<div class="linha"><div class="grid3">' +
-      campo('Tipo da garantia ' + (i + 1), 'dados.garantias.' + i + '.tipo', { ob: i === 0, tipo: 'select', lista: L.garantias }) +
-      campo('Descrição', 'dados.garantias.' + i + '.descricao', { ob: i === 0, max: 500, ph: 'Ex.: veículo, placa, matrícula' }) +
-      campo('Valor (R$)', 'dados.garantias.' + i + '.valor', { mask: 'money', max: 20, ph: '0,00' }) +
-      (F.dados.garantias.length > 1 ? '<button type="button" class="btn btn-ghost" data-a="fdel" data-p="dados.garantias" data-i="' + i + '" aria-label="Remover garantia" title="Remover garantia">' + ic('trash') + '</button>' : '<span></span>') +
-      '</div></div>').join('') + (F.dados.garantias.length < 10 ? '<button type="button" class="btn btn-outline btn-sm" data-a="fadd" data-p="dados.garantias">' + ic('plus') + ' Adicionar garantia</button>' : '') + '</div>';
-  }
-  h += secao('gar', 'Garantias', gr);
+  h += secao('aval', 'Avalista e garantia', '<div class="sn">' +
+    '<div class="campo"><span class="lb">O cooperado possui avalista? <span class="ob">*</span></span>' + simNao('dados.tem_avalista') + '</div>' +
+    '<div class="campo"><span class="lb">A operação tem garantia? <span class="ob">*</span></span>' + simNao('dados.tem_garantia') + '</div></div>');
   h += secao('obs', 'Observações', campo('Observações para a análise', 'dados.observacao', { tipo: 'area', max: 2000, ph: 'Opcional' }));
   h += '<div class="form-acoes">' +
     '<button type="button" class="btn btn-ghost" data-a="descartarForm">' + ic('xmark') + ' Descartar</button>' +
@@ -770,7 +773,7 @@ function faltaForm() {
   const f = [], nomes = [];
   const add = (p, n) => { f.push(p); nomes.push(n); };
   if (!F.cooperado.trim()) add('cooperado', 'nome do cooperado');
-  if (!docOk(F.documento)) add('documento', 'CPF/CNPJ do cooperado');
+  if (!F.conta.trim()) add('conta', 'número da conta');
   if (!F.numero_operacao.trim()) add('numero_operacao', 'número da operação na mesa de negócios');
   if (!F.modalidade) add('modalidade', 'modalidade');
   if (!(numBR(F.valor) > 0)) add('valor', 'valor');
@@ -778,25 +781,14 @@ function faltaForm() {
   if (!F.dados.finalidade.trim()) add('dados.finalidade', 'finalidade');
   DB.listas.checkSolicitacao.forEach(c => { if (c.obrig && !F.checklist[c.id]) add('checklist.' + c.id, c.nome); });
   if (!F.dados.tem_avalista) add('dados.tem_avalista', 'se possui avalista');
-  else if (F.dados.tem_avalista === 'sim') {
-    const a = F.dados.avalistas[0];
-    if (!a.nome.trim()) add('dados.avalistas.0.nome', 'nome do avalista');
-    if (!docOk(a.documento)) add('dados.avalistas.0.documento', 'CPF do avalista');
-  }
   if (!F.dados.tem_garantia) add('dados.tem_garantia', 'se possui garantia');
-  else if (F.dados.tem_garantia === 'sim') {
-    const g = F.dados.garantias[0];
-    if (!g.tipo) add('dados.garantias.0.tipo', 'tipo da garantia');
-    if (!g.descricao.trim()) add('dados.garantias.0.descricao', 'descrição da garantia');
-  }
   return { campos: f, nomes: nomes };
 }
 const SECOES = {
-  coop: () => [F.cooperado.trim(), docOk(F.documento)],
+  coop: () => [F.cooperado.trim(), F.conta.trim()],
   op: () => [F.numero_operacao.trim(), F.modalidade, numBR(F.valor) > 0, +F.prazo > 0, F.dados.finalidade.trim()],
   check: () => DB.listas.checkSolicitacao.filter(c => c.obrig).map(c => F.checklist[c.id]),
-  aval: () => F.dados.tem_avalista === 'sim' ? [true, F.dados.avalistas[0].nome.trim() && docOk(F.dados.avalistas[0].documento)] : [F.dados.tem_avalista],
-  gar: () => F.dados.tem_garantia === 'sim' ? [true, F.dados.garantias[0].tipo && F.dados.garantias[0].descricao.trim()] : [F.dados.tem_garantia]
+  aval: () => [F.dados.tem_avalista, F.dados.tem_garantia]
 };
 function atualizaContadores() {
   let tot = 0, ok = 0;
@@ -809,27 +801,12 @@ function atualizaContadores() {
   const b = $('#barraF'); if (b) b.style.width = Math.round(ok / tot * 100) + '%';
 }
 function dadosForm(enviar) {
-  return { n: F.n, rev: F.rev, enviar: !!enviar, agencia: F.agencia, cooperado: F.cooperado, documento: F.documento, conta: F.conta,
+  return { n: F.n, rev: F.rev, enviar: !!enviar, agencia: F.agencia, cooperado: F.cooperado, conta: F.conta,
     numero_operacao: F.numero_operacao, modalidade: F.modalidade, valor: F.valor, prazo: F.prazo, checklist: F.checklist,
-    dados: { finalidade: F.dados.finalidade, observacao: F.dados.observacao,
-      tem_avalista: F.dados.tem_avalista, avalistas: F.dados.tem_avalista === 'sim' ? F.dados.avalistas : [],
-      tem_garantia: F.dados.tem_garantia, garantias: F.dados.tem_garantia === 'sim' ? F.dados.garantias : [] } };
+    dados: { finalidade: F.dados.finalidade, observacao: F.dados.observacao, tem_avalista: F.dados.tem_avalista, tem_garantia: F.dados.tem_garantia } };
 }
 
 /* =================== máscaras e validação =================== */
-function docOk(v) {
-  const c = dig(v);
-  if (/^(\d)\1+$/.test(c)) return false;
-  if (c.length === 11) {
-    for (let t = 9; t < 11; t++) { let s = 0; for (let i = 0; i < t; i++) s += +c[i] * (t + 1 - i); if (((s * 10) % 11) % 10 !== +c[t]) return false; }
-    return true;
-  }
-  if (c.length === 14) {
-    const calc = len => { let s = 0, p = len - 7; for (let i = 0; i < len; i++) { s += +c[i] * p--; if (p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
-    return calc(12) === +c[12] && calc(13) === +c[13];
-  }
-  return false;
-}
 function dataOk(v) {
   const m = String(v || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return false;
@@ -838,18 +815,12 @@ function dataOk(v) {
 }
 const numBR = v => { const t = String(v || '').replace(/\./g, '').replace(',', '.'); return isFinite(+t) ? +t : 0; };
 const MASK = {
-  doc: v => {
-    const d = dig(v).slice(0, 14);
-    if (d.length <= 11) return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
-    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
-  },
   money: v => { const d = dig(v).replace(/^0+/, '').slice(0, 13); if (!d) return ''; const n = (+d / 100); return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
   int: v => dig(v).slice(0, 3),
   dec: v => { let t = String(v).replace(/[^\d,]/g, ''); const i = t.indexOf(','); if (i >= 0) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/,/g, '').slice(0, 2); return t.slice(0, 10); },
   data: v => { const d = dig(v).slice(0, 8); return d.replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3'); }
 };
 const CHECKS = {
-  doc: { ok: v => !v || docOk(v), msg: 'CPF ou CNPJ inválido. Confira os números.' },
   data: { ok: v => !v || dataOk(v), msg: 'Data inválida. Use dd/mm/aaaa.' }
 };
 /* validação ao sair do campo */
@@ -865,7 +836,7 @@ function check(el) {
 }
 
 /* =================== painel lateral =================== */
-function abrirPainel(p) { PAINEL = p; A = {}; renderPainel(true); }
+function abrirPainel(p, semAnimar) { PAINEL = p; A = {}; renderPainel(!semAnimar); }
 function fecharPainel() { PAINEL = null; A = {}; $('#painelRaiz').innerHTML = ''; }
 function renderPainel(novo) {
   let corpo = '';
@@ -877,8 +848,8 @@ function renderPainel(novo) {
   else if (PAINEL.tipo === 'tipo') corpo = painelTipo();
   const scroll = $('#painelRaiz .pb') ? $('#painelRaiz .pb').scrollTop : 0;
   $('#painelRaiz').className = novo ? 'novo' : '';
-  $('#painelRaiz').innerHTML = '<div class="fundo" data-a="fecharPainel"></div><aside class="painel" role="dialog" aria-modal="true">' + corpo + '</aside>';
-  const pb = $('#painelRaiz .pb'); if (pb) pb.scrollTop = scroll;
+  $('#painelRaiz').innerHTML = '<div class="fundo" data-a="fecharPainel"></div><aside class="painel' + (PAINEL.tipo === 'op' ? ' centro' : '') + '" role="dialog" aria-modal="true">' + corpo + '</aside>';
+  const pb = $('#painelRaiz .pb'); if (pb) pb.scrollTop = novo ? 0 : scroll;
 }
 const cab = (nro, titulo, tags) => '<div class="ph"><button type="button" class="ibtn x" data-a="fecharPainel" aria-label="Fechar" title="Fechar">' + ic('xmark') + '</button>' +
   (nro ? '<div class="nro">' + nro + '</div>' : '') + '<h2>' + titulo + '</h2><div class="row" style="gap:6px">' + (tags || '') + '</div></div>';
@@ -896,7 +867,8 @@ function linhaTempo(o) {
   ];
   const ult = (o.historico || []).slice(-1)[0];
   let nota = '', notaNo = false;
-  if (ult && /^devolveu/.test(ult.acao)) { nota = 'Devolvida por ' + ult.por + ' (' + ult.em + '): ' + ult.obs; notaNo = true; }
+  if (ult && /^devolveu/.test(ult.acao)) { nota = 'Devolvida por ' + ult.por + ' (' + ult.em + ')' + (ult.obs ? ': ' + ult.obs : ''); notaNo = true; }
+  else if (o.status === 'Análise estendida' && ult) nota = 'Análise estendida pedida por ' + ult.por + ' em ' + ult.em + (ult.obs ? ': ' + ult.obs : '');
   else nota = proximo(o);
   if (o.status === 'Reprovada') { nota = 'Reprovada: ' + ((o.diretoria && o.diretoria.texto) || ''); notaNo = true; }
   let parou = -1;
@@ -919,57 +891,72 @@ function linhaTempo(o) {
 }
 
 function painelOp(o) {
-  const L = DB.listas, d = o.dados || {};
+  const L = DB.listas, d = o.dados || {}, ac = blocoAcao(o);
   let h = cab(NRO + ' ' + o.n + (o.numero_operacao ? ' ' + PT + ' Mesa ' + esc(o.numero_operacao) : ''), esc(o.cooperado),
-    tag(o.status) + '<span class="tag plain">' + esc(labelAg(o.agencia)) + '</span><span class="tag plain">' + brl(o.valor) + '</span>');
-  h += '<div class="pb">';
-  h += '<div class="bloco"><span class="cap">Etapas</span>' + linhaTempo(o) + '</div>';
-  h += blocoAcao(o);
-  h += '<div class="bloco"><span class="cap">Cooperado e operação</span>' + dl([
-    ['Cooperado', o.cooperado], ['CPF/CNPJ', fmtDoc(o.documento)], ['Conta corrente', o.conta],
-    ['Número na mesa de negócios', o.numero_operacao], ['Modalidade', o.modalidade], ['Valor', brl(o.valor)],
-    ['Prazo', o.prazo ? o.prazo + ' meses' : ''], ['Agência', labelAg(o.agencia)], ['Atendente', o.solicitante], ['Cadastrada em', o.criado],
+    tag(o.status) + '<span class="tag plain">' + esc(labelAg(o.agencia)) + '</span><span class="tag plain">' + brl(o.valor) + (o.prazo ? ' em ' + o.prazo + 'x' : '') + '</span>');
+  const sn = v => v === 'sim' ? '<span class="tag ok">Sim</span>' : v === 'não' ? '<span class="tag plain">Não</span>' : '\u2013';
+  let dir = '<div class="bloco"><span class="cap">Cooperado e operação</span>' + dl([
+    ['Cooperado', o.cooperado], ['Conta', o.conta], ['Número na mesa de negócios', o.numero_operacao], ['Modalidade', o.modalidade],
+    ['Valor', brl(o.valor)], ['Prazo', o.prazo ? o.prazo + ' meses' : ''], ['Agência', labelAg(o.agencia)], ['Atendente', o.solicitante],
     ['Finalidade', d.finalidade, true], d.observacao ? ['Observações', d.observacao, true] : null]) + '</div>';
-  h += '<div class="bloco"><span class="cap">Checklist da solicitação</span>' + L.checkSolicitacao.map(c =>
-    '<div class="ck">' + (o.checklist && o.checklist[c.id] ? '<span class="s">' + ic('circle-check') + '</span>' : '<span class="z">' + ic('circle-xmark') + '</span>') + esc(c.nome) + '</div>').join('') + '</div>';
-  h += '<div class="bloco"><span class="cap">Avalista e garantias</span>' +
-    '<div><b>Avalista:</b> ' + (d.tem_avalista === 'sim' ? (d.avalistas || []).map(a => esc(a.nome) + ' (' + esc(fmtDoc(a.documento)) + ')').join('; ') : d.tem_avalista === 'não' ? 'Não possui' : '\u2013') + '</div>' +
-    '<div style="margin-top:6px"><b>Garantias:</b> ' + (d.tem_garantia === 'sim' ? (d.garantias || []).map(g => esc(g.tipo) + ': ' + esc(g.descricao) + (g.valor ? ' ' + PT + ' ' + brl(g.valor) : '')).join('; ') : d.tem_garantia === 'não' ? 'Não possui' : '\u2013') + '</div></div>';
+  dir += '<div class="bloco"><span class="cap">Checklist da solicitação</span>' + L.checkSolicitacao.map(c =>
+    '<div class="ck">' + (o.checklist && o.checklist[c.id] ? '<span class="s">' + ic('circle-check') + '</span>' : '<span class="z">' + ic('circle-xmark') + '</span>') + esc(c.nome) + '</div>').join('') +
+    '<div class="sn" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><span>Avalista ' + sn(d.tem_avalista) + '</span><span>Garantia ' + sn(d.tem_garantia) + '</span></div></div>';
   if (o.analise && o.analise.recomendacao) {
     const an = o.analise;
-    h += '<div class="bloco"><span class="cap">Análise</span>' + L.checkAnalise.map(c => {
+    dir += '<div class="bloco"><span class="cap">Análise</span>' + L.checkAnalise.map(c => {
       const v = an.itens && an.itens[c.id];
       return '<div class="ck">' + (v === 'ok' ? '<span class="s">' + ic('circle-check') + '</span>' : '<span class="n">' + ic('circle-xmark') + '</span>') + esc(c.nome) + ' ' + (v === 'ok' ? '<span class="tag ok">Ok</span>' : '<span class="tag no">Não ok</span>') + '</div>';
     }).join('') +
       '<div class="row" style="margin-top:8px">' + '<span class="tag ' + (an.recomendacao === 'Desfavorável' ? 'no' : an.recomendacao === 'Favorável' ? 'ok' : 'wait') + '">' + esc(an.recomendacao) + '</span>' + (an.risco ? '<span class="tag plain">Risco ' + esc(an.risco) + '</span>' : '') + '</div>' +
-      '<div class="texto">' + esc(an.parecer) + '</div><div class="por">' + esc(an.por) + ' ' + PT + ' ' + esc(an.em) + '</div></div>';
+      (an.parecer ? '<div class="texto">' + esc(an.parecer) + '</div>' : '') + '<div class="por">' + esc(an.por) + ' ' + PT + ' ' + esc(an.em) + '</div></div>';
   }
   if (o.gerente && o.gerente.voto) {
     const g = o.gerente;
-    h += '<div class="bloco"><span class="cap">Gerente</span><div class="row"><span class="tag plain">IAP ' + esc(String(g.iap).replace('.', ',')) + '</span><span class="tag ' + (g.voto === 'Favorável' ? 'ok' : 'no') + '">Voto ' + esc(g.voto.toLowerCase()) + '</span></div>' +
+    dir += '<div class="bloco"><span class="cap">Gerente</span><div class="row"><span class="tag plain">IAP ' + esc(String(g.iap).replace('.', ',')) + '</span><span class="tag ok">Voto favorável</span></div>' +
       (g.parecer ? '<div class="texto">' + esc(g.parecer) + '</div>' : '') + '<div class="por">' + esc(g.por) + ' ' + PT + ' ' + esc(g.em) + '</div></div>';
   }
   if (o.diretoria && o.diretoria.decisao) {
     const x = o.diretoria;
-    h += '<div class="bloco"><span class="cap">Diretoria</span>' + tag(x.decisao) + (x.texto ? '<div class="texto">' + esc(x.texto) + '</div>' : '') + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
+    dir += '<div class="bloco"><span class="cap">Diretoria</span>' + tag(x.decisao) + (x.texto ? '<div class="texto">' + esc(x.texto) + '</div>' : '') + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
   }
   if (o.liberacao && o.liberacao.data) {
     const x = o.liberacao;
-    h += '<div class="bloco"><span class="cap">Liberação</span>' + dl([['Data da liberação', x.data], ['Contrato', x.contrato], x.obs ? ['Observação', x.obs, true] : null]) + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
+    dir += '<div class="bloco"><span class="cap">Liberação</span>' + dl([['Data da liberação', x.data], ['Contrato', x.contrato], x.obs ? ['Observação', x.obs, true] : null]) + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
   }
-  h += '<div class="bloco"><span class="cap">Histórico</span><div class="hist">' + (o.historico || []).slice().reverse().map(x =>
-    '<div class="h"><span class="q">' + esc(x.em) + '</span><span><b>' + esc(x.por) + '</b> ' + esc(x.acao) + (x.obs ? '<div class="obs">' + esc(x.obs) + '</div>' : '') + '</span></div>').join('') + '</div></div>';
-  h += '</div>';
-  const pf = [];
-  if (o.excluir) pf.push('<button type="button" class="btn btn-ghost" data-a="excluirOp" data-n="' + o.n + '" data-trava>' + ic('trash') + ' Excluir</button>');
-  if (o.cancelar) pf.push('<button type="button" class="btn btn-ghost" data-a="cancelarOp" data-n="' + o.n + '">' + ic('xmark') + ' Cancelar operação</button>');
-  if (o.reativar) pf.push('<button type="button" class="btn btn-outline" data-a="reativarOp" data-n="' + o.n + '" data-trava>' + ic('rotate-right') + ' Reativar</button>');
-  if (o.editar) {
-    pf.push('<button type="button" class="btn btn-outline" data-a="corrigirOp" data-n="' + o.n + '">' + ic('pen') + ' Corrigir</button>');
-    pf.push('<button type="button" class="btn btn-primary" data-a="enviarOp" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Enviar para análise</button>');
+  dir += ac.html;
+  const esq = '<div class="bloco"><span class="cap">Etapas</span>' + linhaTempo(o) + '</div>' +
+    '<div class="bloco"><span class="cap">Histórico</span><div class="hist">' + (o.historico || []).slice().reverse().map(x =>
+      '<div class="h"><span class="q">' + esc(x.em) + '</span><span><b>' + esc(x.por) + '</b> ' + esc(x.acao) + (x.obs ? '<div class="obs">' + esc(x.obs) + '</div>' : '') + '</span></div>').join('') + '</div></div>';
+  h += '<div class="pb"><div class="opgrid"><div class="col">' + dir + '</div><div class="col">' + esq + '</div></div></div>';
+
+  const bts = ac.bts.slice();
+  if (!ac.bts.length) {
+    if (o.excluir) bts.push('<button type="button" class="btn btn-ghost" data-a="excluirOp" data-n="' + o.n + '" data-trava>' + ic('trash') + ' Excluir</button>');
+    if (o.cancelar) bts.push('<button type="button" class="btn btn-ghost" data-a="cancelarOp" data-n="' + o.n + '">' + ic('xmark') + ' Cancelar operação</button>');
+    if (o.reativar) bts.push('<button type="button" class="btn btn-outline" data-a="reativarOp" data-n="' + o.n + '" data-trava>' + ic('rotate-right') + ' Reativar</button>');
+    if (o.editar) {
+      bts.push('<button type="button" class="btn btn-outline" data-a="corrigirOp" data-n="' + o.n + '">' + ic('pen') + ' Corrigir</button>');
+      bts.push('<button type="button" class="btn btn-primary" data-a="enviarOp" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Enviar para análise</button>');
+    }
   }
-  if (pf.length) h += '<div class="pf">' + pf.join('') + '</div>';
+  const fila = PAINEL.fila || [o.n], i = fila.indexOf(o.n);
+  const nav = fila.length > 1 ? '<div class="fila"><button type="button" class="btn btn-ghost btn-sm" data-a="navOp" data-d="-1"' + (i > 0 ? '' : ' disabled') + '>' + ic('arrow-left') + ' Anterior</button>' +
+    '<span class="pos">' + (i + 1) + ' de ' + fila.length + '</span>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-a="navOp" data-d="1"' + (i < fila.length - 1 ? '' : ' disabled') + '>Próxima ' + ic('arrow-right') + '</button></div>' : '<span></span>';
+  h += '<div class="pf op">' + nav + '<div class="bts-acao">' + bts.join('') + '</div></div>';
   return h;
+}
+
+/* depois de decidir, abre a próxima tarefa da fila (ordem de chegada) sem fechar a janela */
+function avancar(nAtual, msg) {
+  const fila = (PAINEL && PAINEL.fila) || [];
+  const i = fila.indexOf(nAtual);
+  const ordem = fila.slice(i + 1).concat(fila.slice(0, Math.max(i, 0)));
+  const prox = ordem.find(n => { const x = DB.operacoes.find(o => o.n === n); return x && ehTarefa(x); });
+  if (prox) { abrirPainel({ tipo: 'op', n: prox, fila: fila }); toast(msg + ' ' + PT + ' abrindo a próxima'); return true; }
+  fecharPainel();
+  return false;
 }
 
 /* bloco de ação conforme quem está olhando (o servidor decide; a tela só mostra) */
@@ -977,47 +964,45 @@ function blocoAcao(o) {
   const L = DB.listas;
   const area = (k, rot, ph, ob) => '<div class="campo" style="margin-top:10px"><label for="a_' + k + '">' + rot + (ob ? ' <span class="ob">*</span>' : '') + '</label><textarea class="in" id="a_' + k + '" data-ak="' + k + '" maxlength="4000" placeholder="' + esc(ph || '') + '">' + esc(A[k] || '') + '</textarea></div>';
   const chips = (k, lista, nok) => '<div class="row" style="gap:6px">' + lista.map(x => '<button type="button" class="chip' + (nok && nok(x) ? ' nok' : '') + '" data-a="aset" data-k="' + k + '" data-v="' + esc(x) + '" aria-pressed="' + (A[k] === x) + '">' + esc(x) + '</button>').join('') + '</div>';
+  const bt = (a, cls, ico, txt, v) => '<button type="button" class="btn ' + cls + '" data-a="' + a + '" data-n="' + o.n + '"' + (v ? ' data-v="' + v + '"' : '') + ' data-trava>' + ic(ico) + ' ' + txt + '</button>';
+  if (A.cancelando && o.cancelar) {
+    return { html: '<div class="bloco acao"><span class="cap">' + ic('triangle-exclamation') + ' Cancelar a operação</span>' + area('motivo', 'Motivo do cancelamento', 'Ex.: cooperado desistiu', true) + '</div>',
+      bts: ['<button type="button" class="btn btn-ghost" data-a="cancelarNao">Voltar</button>', bt('cancelarSim', 'btn-danger', 'xmark', 'Confirmar cancelamento')] };
+  }
   if (o.analisar) {
     A.itens = A.itens || {};
-    return '<div class="bloco acao"><span class="cap">' + ic('list-check') + ' Sua análise</span>' +
+    return { html: '<div class="bloco acao"><span class="cap">' + ic('list-check') + ' Sua análise</span>' +
       L.checkAnalise.map(c => '<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>' + esc(c.nome) + ' <span class="ob" style="color:var(--danger)">*</span></span><span class="row" style="gap:6px">' +
         '<button type="button" class="chip" data-a="aitem" data-k="' + c.id + '" data-v="ok" aria-pressed="' + (A.itens[c.id] === 'ok') + '">' + ic('check') + ' Ok</button>' +
         '<button type="button" class="chip nok" data-a="aitem" data-k="' + c.id + '" data-v="nok" aria-pressed="' + (A.itens[c.id] === 'nok') + '">' + ic('xmark') + ' Não ok</button></span></div>').join('') +
       '<div class="grid2" style="margin-top:10px"><div class="campo"><label for="a_risco">Nível de risco</label><select class="in" id="a_risco" data-ak="risco"><option value="">Sem classificação</option>' + L.riscos.map(r => '<option' + (A.risco === r ? ' selected' : '') + '>' + r + '</option>').join('') + '</select></div>' +
       '<div class="campo"><span class="lb">Recomendação <span class="ob">*</span></span>' + chips('recomendacao', L.recomendacoes, x => x === 'Desfavorável') + '</div></div>' +
-      area('parecer', 'Parecer da análise', 'Resumo da análise. Para devolver ao atendente, escreva aqui o que ele precisa corrigir.', true) +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-outline" data-a="analisePend" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver ao atendente</button>' +
-      '<button type="button" class="btn btn-primary" data-a="analiseOk" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Concluir análise</button></div></div>';
+      area('parecer', 'Parecer da análise', 'Opcional', false) + '</div>',
+      bts: [bt('analisePend', 'btn-outline', 'arrow-left', 'Devolver ao atendente'), bt('analiseOk', 'btn-primary', 'paper-plane', 'Concluir análise')] };
   }
   if (o.votar) {
-    return '<div class="bloco acao"><span class="cap">' + ic('user-gear') + ' IAP e voto do gerente</span><div class="grid2">' +
-      '<div class="campo"><label for="a_iap">IAP <span class="ob">*</span></label><input class="in" id="a_iap" data-ak="iap" data-mask="dec" inputmode="decimal" value="' + esc(A.iap || '') + '" placeholder="Ex.: 2,5"></div>' +
-      '<div class="campo"><span class="lb">Seu voto <span class="ob">*</span></span>' + chips('voto', L.votos, x => x === 'Desfavorável') + '</div></div>' +
-      area('parecer', 'Parecer do gerente', 'Obrigatório para voto desfavorável ou para devolver', false) +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-outline" data-a="gerDevolver" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver para a análise</button>' +
-      '<button type="button" class="btn btn-primary" data-a="gerEnviar" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Votar e enviar à diretoria</button></div></div>';
+    return { html: '<div class="bloco acao"><span class="cap">' + ic('user-gear') + ' IAP do gerente</span>' +
+      '<div class="campo" style="max-width:240px"><label for="a_iap">IAP <span class="ob">*</span></label><input class="in" id="a_iap" data-ak="iap" data-mask="dec" inputmode="decimal" value="' + esc(A.iap || '') + '" placeholder="Ex.: 2,5"></div>' +
+      '<div class="muted small" style="margin-top:8px">' + ic('circle-check') + ' Ao enviar à diretoria, seu voto favorável fica registrado.</div>' +
+      area('parecer', 'Parecer do gerente', 'Opcional', false) + '</div>',
+      bts: [bt('gerDevolver', 'btn-outline', 'arrow-left', 'Devolver para a análise'), bt('gerEnviar', 'btn-primary', 'paper-plane', 'Enviar à diretoria')] };
   }
   if (o.decidir) {
-    return '<div class="bloco acao"><span class="cap">' + ic('building-columns') + ' Decisão da diretoria</span>' +
-      area('texto', 'Parecer da diretoria', 'Obrigatório para reprovar ou devolver', false) +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px">' +
-      '<button type="button" class="btn btn-danger" data-a="dirDecide" data-v="reprovar" data-n="' + o.n + '" data-trava>' + ic('circle-xmark') + ' Reprovar</button>' +
-      '<button type="button" class="btn btn-outline" data-a="dirDecide" data-v="devolver" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver ao gerente</button>' +
-      '<button type="button" class="btn btn-primary" data-a="dirDecide" data-v="aprovar" data-n="' + o.n + '" data-trava>' + ic('circle-check') + ' Aprovar</button></div></div>';
+    const b = [bt('dirDecide', 'btn-ghost', 'circle-xmark', 'Reprovar', 'reprovar'), bt('dirDecide', 'btn-outline', 'arrow-left', 'Devolver', 'devolver')];
+    if (o.status !== 'Análise estendida') b.push(bt('dirDecide', 'btn-outline', 'stopwatch', 'Análise estendida', 'estender'));
+    b.push(bt('dirDecide', 'btn-primary', 'circle-check', 'Aprovar', 'aprovar'));
+    return { html: '<div class="bloco acao"><span class="cap">' + ic('building-columns') + ' Decisão da diretoria</span>' +
+      area('texto', 'Parecer da diretoria', 'Opcional. Só é obrigatório para reprovar.', false) + '</div>', bts: b };
   }
   if (o.liberar) {
     if (A.data == null) A.data = hoje();
-    return '<div class="bloco acao"><span class="cap">' + ic('circle-check') + ' Liberação</span><div class="grid2">' +
+    return { html: '<div class="bloco acao"><span class="cap">' + ic('circle-check') + ' Liberação</span><div class="grid2">' +
       '<div class="campo"><label for="a_data">Data da liberação <span class="ob">*</span></label><input class="in" id="a_data" data-ak="data" data-mask="data" data-check="data" inputmode="numeric" value="' + esc(A.data) + '" placeholder="dd/mm/aaaa"></div>' +
       '<div class="campo"><label for="a_contrato">Número do contrato</label><input class="in" id="a_contrato" data-ak="contrato" maxlength="40" value="' + esc(A.contrato || '') + '"></div></div>' +
-      '<div class="campo" style="margin-top:10px"><label for="a_obs">Observação</label><textarea class="in" id="a_obs" data-ak="obs" maxlength="1000">' + esc(A.obs || '') + '</textarea></div>' +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-primary" data-a="liberarOp" data-n="' + o.n + '" data-trava>' + ic('circle-check') + ' Registrar liberação</button></div></div>';
+      '<div class="campo" style="margin-top:10px"><label for="a_obs">Observação</label><textarea class="in" id="a_obs" data-ak="obs" maxlength="1000">' + esc(A.obs || '') + '</textarea></div></div>',
+      bts: [bt('liberarOp', 'btn-primary', 'circle-check', 'Registrar liberação')] };
   }
-  if (A.cancelando && o.cancelar) {
-    return '<div class="bloco acao"><span class="cap">' + ic('triangle-exclamation') + ' Cancelar a operação</span>' + area('motivo', 'Motivo do cancelamento', 'Ex.: cooperado desistiu', true) +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-ghost" data-a="cancelarNao">Voltar</button><button type="button" class="btn btn-danger" data-a="cancelarSim" data-n="' + o.n + '" data-trava>' + ic('xmark') + ' Confirmar cancelamento</button></div></div>';
-  }
-  return '';
+  return { html: '', bts: [] };
 }
 
 /* =================== usuários =================== */
@@ -1171,6 +1156,12 @@ function segundoClique(btn) {
 
 /* =================== ações (cliques) =================== */
 const opDe = el => DB.operacoes.find(o => o.n === +el.getAttribute('data-n'));
+/* terminou uma operação: segue para a próxima da fila; se acabou, mostra o popup */
+function fimDaFila(o, titulo, texto, extra) {
+  if (avancar(o.n, NRO + ' ' + o.n + ': ' + titulo.toLowerCase())) return;
+  popup({ tipo: /reprovada/i.test(titulo) ? 'warn' : 'ok', titulo: titulo, texto: (texto ? texto + ' ' : '') + 'Não há mais operações na sua fila.',
+    detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)]].concat(extra || []) });
+}
 const ACOES = {
   atualizar: () => { LINKS = null; carregar(); },
   tema: () => {
@@ -1185,17 +1176,15 @@ const ACOES = {
   aba: el => { ABA = el.getAttribute('data-id'); UI.menu = ''; renderAbas(); renderConteudo(); window.scrollTo(0, 0); },
   filtro: el => { UI.filtro = el.getAttribute('data-id'); renderConteudo(); },
   novaOp: () => { F = formVazio(); FALTA = []; ABA = 'nova'; renderAbas(); renderConteudo(); },
-  abrirOp: el => abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n') }),
+  abrirOp: el => abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n'), fila: listaVisivel().map(o => o.n) }),
+  navOp: el => { const f = PAINEL.fila, i = f.indexOf(PAINEL.n) + +el.getAttribute('data-d'); if (f[i] != null) abrirPainel({ tipo: 'op', n: f[i], fila: f }, true); },
   fecharPainel: () => fecharPainel(),
 
   /* formulário */
   fset: el => { setPath(F, el.getAttribute('data-p'), el.getAttribute('data-v')); limpaFalta(el.getAttribute('data-p')); renderConteudo(); },
-  fadd: el => { const l = getPath(F, el.getAttribute('data-p')); l.push(/garantias/.test(el.getAttribute('data-p')) ? { tipo: '', descricao: '', valor: '' } : { nome: '', documento: '' }); renderConteudo(); },
-  fdel: el => { getPath(F, el.getAttribute('data-p')).splice(+el.getAttribute('data-i'), 1); FALTA = []; renderConteudo(); },
   descartarForm: () => { F = formVazio(); FALTA = []; renderAbas(); renderConteudo(); toast('Formulário limpo'); },
   salvarForm: () => {
     if (!F.cooperado.trim()) { FALTA = ['cooperado']; renderConteudo(); popup({ tipo: 'warn', titulo: 'Falta o nome do cooperado', texto: 'Preencha pelo menos o nome do cooperado para salvar o rascunho.' }); focaFalta(); return; }
-    if (F.documento && !docOk(F.documento)) { FALTA = ['documento']; renderConteudo(); popup({ tipo: 'warn', titulo: 'CPF ou CNPJ inválido', texto: 'Confira os números do CPF ou CNPJ do cooperado.' }); focaFalta(); return; }
     acao('salvarOperacao', [dadosForm(false)], r => {
       const o = r.operacoes.find(x => x.n === r.ultimo);
       if (o) F = formDe(o);
@@ -1233,47 +1222,31 @@ const ACOES = {
   analiseOk: el => {
     const o = opDe(el), falta = DB.listas.checkAnalise.filter(c => !(A.itens && A.itens[c.id])).map(c => c.nome);
     if (!A.recomendacao) falta.push('recomendação');
-    if (!String(A.parecer || '').trim()) falta.push('parecer');
     if (falta.length) return popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Para concluir a análise, falta: ' + falta.join(', ') + '.' });
-    acao('analisarOperacao', [o.n, { acao: 'concluir', itens: A.itens, risco: A.risco || '', recomendacao: A.recomendacao, parecer: A.parecer }, o.rev],
-      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Análise concluída', texto: 'A operação foi para o gerente incluir o IAP e votar.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Recomendação', A.recomendacao || '']] }); });
+    const rec = A.recomendacao;
+    acao('analisarOperacao', [o.n, { acao: 'concluir', itens: A.itens, risco: A.risco || '', recomendacao: rec, parecer: A.parecer || '' }, o.rev],
+      () => fimDaFila(o, 'Análise concluída', 'A operação foi para o gerente incluir o IAP.', [['Recomendação', rec]]));
   },
-  analisePend: el => {
-    const o = opDe(el);
-    if (!String(A.parecer || '').trim()) { popup({ tipo: 'warn', titulo: 'Escreva o que falta', texto: 'No campo Parecer, escreva o que o atendente precisa corrigir.' }); return; }
-    acao('analisarOperacao', [o.n, { acao: 'pendencia', parecer: A.parecer }, o.rev], () => { fecharPainel(); toast('Devolvida ao atendente ' + PT + ' ' + NRO + ' ' + o.n); });
-  },
+  analisePend: el => { const o = opDe(el); acao('analisarOperacao', [o.n, { acao: 'pendencia', parecer: A.parecer || '' }, o.rev], () => fimDaFila(o, 'Devolvida ao atendente')); },
   gerEnviar: el => {
-    const o = opDe(el), falta = [];
-    if (!String(A.iap || '').trim()) falta.push('IAP');
-    if (!A.voto) falta.push('seu voto');
-    if (A.voto === 'Desfavorável' && !String(A.parecer || '').trim()) falta.push('parecer (obrigatório no voto desfavorável)');
-    if (falta.length) return popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Falta: ' + falta.join(', ') + '.' });
-    const voto = A.voto, iap = A.iap;
-    acao('votarGerente', [o.n, { acao: 'enviar', iap: iap, voto: voto, parecer: A.parecer || '' }, o.rev],
-      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Enviada à diretoria', texto: 'Seu voto foi registrado.', detalhes: [['Operação', NRO + ' ' + o.n], ['IAP', iap], ['Voto', voto]] }); });
-  },
-  gerDevolver: el => {
     const o = opDe(el);
-    if (!String(A.parecer || '').trim()) return popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'No campo Parecer, escreva por que está devolvendo para a análise.' });
-    acao('votarGerente', [o.n, { acao: 'devolver', parecer: A.parecer }, o.rev], () => { fecharPainel(); toast('Devolvida para a análise ' + PT + ' ' + NRO + ' ' + o.n); });
+    if (!String(A.iap || '').trim()) return popup({ tipo: 'warn', titulo: 'Falta o IAP', texto: 'Informe o IAP para enviar à diretoria.' });
+    const iap = A.iap;
+    acao('votarGerente', [o.n, { acao: 'enviar', iap: iap, parecer: A.parecer || '' }, o.rev],
+      () => fimDaFila(o, 'Enviada à diretoria', 'Seu voto favorável foi registrado.', [['IAP', iap]]));
   },
+  gerDevolver: el => { const o = opDe(el); acao('votarGerente', [o.n, { acao: 'devolver', parecer: A.parecer || '' }, o.rev], () => fimDaFila(o, 'Devolvida para a análise')); },
   dirDecide: el => {
     const o = opDe(el), v = el.getAttribute('data-v');
-    if (v !== 'aprovar' && !String(A.texto || '').trim()) return popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Para ' + (v === 'reprovar' ? 'reprovar' : 'devolver ao gerente') + ', escreva o motivo no parecer.' });
-    acao('decidirDiretoria', [o.n, v, A.texto || '', o.rev], () => {
-      fecharPainel();
-      if (v === 'devolver') return toast('Devolvida ao gerente ' + PT + ' ' + NRO + ' ' + o.n);
-      popup({ tipo: v === 'aprovar' ? 'ok' : 'warn', titulo: v === 'aprovar' ? 'Operação aprovada' : 'Operação reprovada',
-        texto: v === 'aprovar' ? 'A agência já pode fazer a liberação.' : 'A operação foi encerrada.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)]] });
-    });
+    if (v === 'reprovar' && !String(A.texto || '').trim()) { popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Para reprovar, escreva o motivo no parecer da diretoria.' }); const t = $('#a_texto'); if (t) t.focus(); return; }
+    const t = { aprovar: 'Operação aprovada', reprovar: 'Operação reprovada', devolver: 'Devolvida ao gerente', estender: 'Em análise estendida' }[v];
+    acao('decidirDiretoria', [o.n, v, A.texto || '', o.rev], () => fimDaFila(o, t, v === 'aprovar' ? 'A agência já pode fazer a liberação.' : ''));
   },
   liberarOp: el => {
     const o = opDe(el);
     if (!dataOk(A.data)) return popup({ tipo: 'warn', titulo: 'Data inválida', texto: 'Informe a data da liberação no formato dd/mm/aaaa.' });
     const data = A.data;
-    acao('liberarOperacao', [o.n, { data: data, contrato: A.contrato || '', obs: A.obs || '' }, o.rev],
-      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Liberação registrada', texto: 'Operação concluída.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)], ['Data', data]] }); });
+    acao('liberarOperacao', [o.n, { data: data, contrato: A.contrato || '', obs: A.obs || '' }, o.rev], () => fimDaFila(o, 'Liberação registrada', 'Operação concluída.', [['Data', data]]));
   },
   cancelarOp: () => { A.cancelando = true; renderPainel(); const t = $('#a_motivo'); if (t) t.focus(); },
   cancelarNao: () => { A.cancelando = false; renderPainel(); },
@@ -1397,6 +1370,9 @@ function refazLista(sel) {
   const n = $(sel); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ok */ } }
 }
 document.addEventListener('keydown', ev => {
+  if ((ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') && PAINEL && PAINEL.tipo === 'op' && !$('#popRaiz').innerHTML && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) {
+    const b = $('[data-a="navOp"][data-d="' + (ev.key === 'ArrowRight' ? 1 : -1) + '"]'); if (b && !b.disabled) b.click(); return;
+  }
   if (ev.key !== 'Escape') return;
   if ($('#popRaiz').innerHTML) closePopup();
   else if (UI.menu) { UI.menu = ''; renderTopo(); }

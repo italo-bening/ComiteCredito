@@ -6,9 +6,12 @@
  *   1  Primeira versão: operações de crédito com checklist da solicitação, análise com checklist
  *      (capacidade de pagamento etc.), IAP e voto do gerente, decisão da diretoria e liberação pela agência;
  *      pessoas e tipos de usuário, Trocar de acesso, Ver como, links e atalhos do dev.
+ *   2  Sem CPF do cooperado (só a conta); avalista e garantia só sim/não; parecer da análise opcional;
+ *      gerente envia com voto favorável automático; diretoria ganha "Análise estendida"; devolver sem motivo;
+ *      ordem de chegada (coluna chegada) para a fila de cada etapa.
  */
-const VERSAO = 1;
-const VERSAO_DATA = '07/11/2026 15:39';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
+const VERSAO = 2;
+const VERSAO_DATA = '07/11/2026 16:12';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
 
 const NOME_SISTEMA = 'Comitê de Crédito';
 const FUSO = 'America/Porto_Velho';
@@ -24,6 +27,7 @@ const ST = {
   PENDENTE: 'Pendente',          // análise (ou gerente) devolveu ao atendente para corrigir
   GERENTE: 'Com o gerente',      // gerente inclui o IAP e vota
   DIRETORIA: 'Na diretoria',     // diretoria aprova
+  ESTENDIDA: 'Análise estendida', // diretoria segurou para decidir em outro dia
   APROVADA: 'Aprovada',          // atendente libera
   LIBERADA: 'Liberada',          // fim
   REPROVADA: 'Reprovada',        // fim
@@ -31,13 +35,12 @@ const ST = {
 };
 const STATUS = Object.keys(ST).map(k => ST[k]);
 const PREPARO = [ST.RASCUNHO, ST.PENDENTE];
-const CANCELAVEIS = [ST.RASCUNHO, ST.PENDENTE, ST.ANALISE, ST.GERENTE, ST.DIRETORIA];
+const CANCELAVEIS = [ST.RASCUNHO, ST.PENDENTE, ST.ANALISE, ST.GERENTE, ST.DIRETORIA, ST.ESTENDIDA];
+const NA_DIRETORIA = [ST.DIRETORIA, ST.ESTENDIDA];
 
 // ---------- listas da tela ----------
 const MODALIDADES = ['Crédito pessoal', 'Capital de giro', 'Financiamento de veículo', 'Crédito rural',
   'Consignado', 'Cheque especial', 'Antecipação de recebíveis', 'Investimento', 'Outra'];
-const TIPOS_GARANTIA = ['Alienação fiduciária de veículo', 'Alienação fiduciária de imóvel', 'Hipoteca', 'Penhor',
-  'Aplicação financeira', 'Cessão de recebíveis', 'Outra'];
 const CHECK_SOLICITACAO = [
   { id: 'spc', nome: 'Consulta SPC/Serasa', obrig: true },
   { id: 'scr', nome: 'Consulta SCR (Banco Central)', obrig: true },
@@ -55,11 +58,10 @@ const CHECK_ANALISE = [
 ];
 const RECOMENDACOES = ['Favorável', 'Favorável com ressalvas', 'Desfavorável'];
 const RISCOS = ['AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-const VOTOS = ['Favorável', 'Desfavorável'];
 
 // ---------- planilha ----------
 const ABAS = {
-  Operacoes: ['n', 'agencia', 'status', 'criado', 'atualizado', 'email', 'solicitante', 'cooperado', 'documento', 'conta',
+  Operacoes: ['n', 'agencia', 'status', 'criado', 'atualizado', 'chegada', 'email', 'solicitante', 'cooperado', 'conta',
     'numero_operacao', 'modalidade', 'valor', 'prazo', 'dados', 'checklist', 'analise', 'gerente', 'diretoria',
     'liberacao', 'historico', 'excluida', 'rev'],
   Usuarios: ['email', 'nome', 'agencia', 'perfil', 'ativo', 'acessos'],
@@ -127,6 +129,7 @@ function testarIcone() {
 // =====================================================================================
 function ss_() { return SpreadsheetApp.getActive(); }
 function agora_() { return Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'); }
+function chegada_() { return Utilities.formatDate(new Date(), FUSO, 'yyyy-MM-dd HH:mm:ss'); }   // ordena a fila
 function norm_(e) { return String(e == null ? '' : e).toLowerCase().replace(/\s+/g, ''); }
 function sim_(v) { return /^(sim|s|true|1|x|yes)$/i.test(String(v == null ? '' : v).trim()); }
 function nao_(v) { return /^(n|não|nao|false|0|no)$/i.test(String(v == null ? '' : v).trim()); }
@@ -152,34 +155,6 @@ function https_(v) {
   return /^https:\/\/[^\s"'<>]+$/i.test(t) ? t : '';
 }
 function digitos_(v) { return String(v == null ? '' : v).replace(/\D/g, ''); }
-function cpfOk_(c) {
-  c = digitos_(c);
-  if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
-  for (let t = 9; t < 11; t++) {
-    let s = 0;
-    for (let i = 0; i < t; i++) s += +c[i] * (t + 1 - i);
-    if (((s * 10) % 11) % 10 !== +c[t]) return false;
-  }
-  return true;
-}
-function cnpjOk_(c) {
-  c = digitos_(c);
-  if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
-  const calc = len => {
-    let s = 0, p = len - 7;
-    for (let i = 0; i < len; i++) { s += +c[i] * p--; if (p < 2) p = 9; }
-    const r = s % 11;
-    return r < 2 ? 0 : 11 - r;
-  };
-  return calc(12) === +c[12] && calc(13) === +c[13];
-}
-function docOk_(v) { const d = digitos_(v); return d.length === 11 ? cpfOk_(d) : d.length === 14 ? cnpjOk_(d) : false; }
-function doc_(v, nome) {                               // CPF ou CNPJ: guarda só os números
-  const d = digitos_(v);
-  if (!d) return '';
-  if (!docOk_(d)) throw new Error(nome + ': CPF ou CNPJ inválido. Confira os números.');
-  return d;
-}
 function dataOk_(v) {
   const m = String(v || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return false;
@@ -339,7 +314,7 @@ function ve_(u, o) {
 const podeEditar_ = (u, o) => PREPARO.indexOf(o.status) >= 0 && u.perm.solicita && atende_(u, o);
 const podeAnalisar_ = (u, o) => o.status === ST.ANALISE && u.perm.analisa && atende_(u, o);
 const podeVotar_ = (u, o) => o.status === ST.GERENTE && u.perm.vota && atende_(u, o);
-const podeDecidir_ = (u, o) => o.status === ST.DIRETORIA && u.perm.aprova && atende_(u, o);
+const podeDecidir_ = (u, o) => NA_DIRETORIA.indexOf(o.status) >= 0 && u.perm.aprova && atende_(u, o);
 const podeLiberar_ = (u, o) => o.status === ST.APROVADA && u.perm.libera && atende_(u, o);
 const podeCancelar_ = (u, o) => CANCELAVEIS.indexOf(o.status) >= 0 && (u.perm.solicita || u.admin) && atende_(u, o);
 const podeReativar_ = (u, o) => o.status === ST.CANCELADA && (u.perm.solicita || u.admin) && atende_(u, o);
@@ -354,7 +329,6 @@ function opObj_(x) {                                   // linha da planilha → 
   o.n = +o.n; o.rev = +o.rev || 0; o.valor = num_(o.valor); o.prazo = parseInt(o.prazo, 10) || 0;
   o.email = norm_(o.email);
   o.agencia = ag_(o.agencia);
-  o.documento = digitos_(o.documento);
   o.excluida = sim_(o.excluida);
   if (STATUS.indexOf(o.status) < 0) o.status = ST.RASCUNHO;
   return o;
@@ -371,8 +345,10 @@ function mexer_(n, rev, fn) {
     if (!x) throw new Error('Operação não encontrada. Clique em Atualizar.');
     const o = opObj_(x);
     if (rev != null && rev !== '' && +rev !== o.rev) throw new Error('Esta operação foi alterada por outra pessoa enquanto você mexia nela. Clique em Atualizar e confira.');
+    const era = o.status;
     fn(o);
     o.atualizado = agora_(); o.rev++;
+    if (o.status !== era && !(era === ST.DIRETORIA && o.status === ST.ESTENDIDA)) o.chegada = chegada_();
     delete o._linha;
     gravar_(s, x._linha, o);
     return o.n;
@@ -385,21 +361,11 @@ function limpaOperacao_(d, u) {
   const dd = d.dados && typeof d.dados === 'object' ? d.dados : {};
   const ck = d.checklist && typeof d.checklist === 'object' ? d.checklist : {};
   const simNao = v => v === 'sim' || v === 'não' ? v : '';
-  const avalistas = (Array.isArray(dd.avalistas) ? dd.avalistas : []).slice(0, 5).map((a, i) => ({
-    nome: txt_(a && a.nome, 150, 'Nome do avalista ' + (i + 1)),
-    documento: doc_(a && a.documento, 'Avalista ' + (i + 1))
-  })).filter(a => a.nome || a.documento);
-  const garantias = (Array.isArray(dd.garantias) ? dd.garantias : []).slice(0, 10).map((g, i) => ({
-    tipo: TIPOS_GARANTIA.indexOf(g && g.tipo) >= 0 ? g.tipo : '',
-    descricao: txt_(g && g.descricao, 500, 'Descrição da garantia ' + (i + 1)),
-    valor: num_(g && g.valor)
-  })).filter(g => g.tipo || g.descricao || g.valor);
   const checklist = {};
   CHECK_SOLICITACAO.forEach(c => { checklist[c.id] = ck[c.id] === true; });
   const x = {
     agencia: ag_(d.agencia || u.agencia),
     cooperado: txt_(d.cooperado, 150, 'Nome do cooperado'),
-    documento: doc_(d.documento, 'CPF/CNPJ do cooperado'),
     conta: txt_(d.conta, 30, 'Conta corrente'),
     numero_operacao: txt_(d.numero_operacao, 40, 'Número da operação'),
     modalidade: MODALIDADES.indexOf(d.modalidade) >= 0 ? d.modalidade : '',
@@ -409,8 +375,8 @@ function limpaOperacao_(d, u) {
     dados: {
       finalidade: txt_(dd.finalidade, 1000, 'Finalidade'),
       observacao: txt_(dd.observacao, 2000, 'Observações'),
-      tem_avalista: simNao(dd.tem_avalista), avalistas: avalistas,
-      tem_garantia: simNao(dd.tem_garantia), garantias: garantias
+      tem_avalista: simNao(dd.tem_avalista),
+      tem_garantia: simNao(dd.tem_garantia)
     }
   };
   if (x.valor < 0) throw new Error('O valor não pode ser negativo.');
@@ -423,16 +389,14 @@ function faltaEnvio_(o) {
   const f = [];
   if (!o.numero_operacao) f.push('número da operação na mesa de negócios');
   if (!o.cooperado) f.push('nome do cooperado');
-  if (!o.documento) f.push('CPF/CNPJ do cooperado');
+  if (!o.conta) f.push('conta do cooperado');
   if (!o.modalidade) f.push('modalidade');
   if (!(o.valor > 0)) f.push('valor');
   if (!(o.prazo > 0)) f.push('prazo');
   if (!o.dados.finalidade) f.push('finalidade');
   CHECK_SOLICITACAO.forEach(c => { if (c.obrig && !o.checklist[c.id]) f.push('checklist: ' + c.nome); });
   if (!o.dados.tem_avalista) f.push('se possui avalista');
-  else if (o.dados.tem_avalista === 'sim' && !o.dados.avalistas.some(a => a.nome && a.documento)) f.push('nome e CPF do avalista');
   if (!o.dados.tem_garantia) f.push('se possui garantia');
-  else if (o.dados.tem_garantia === 'sim' && !o.dados.garantias.some(g => g.tipo && g.descricao)) f.push('tipo e descrição da garantia');
   return f;
 }
 
@@ -464,7 +428,7 @@ function salvarOperacao(d) {
       const s = aba_('Operacoes');
       const ns = ler_('Operacoes').map(r => +r.n || 0);
       const o = Object.assign({ n: Math.max.apply(null, [0].concat(ns)) + 1, status: ST.RASCUNHO, criado: agora_(),
-        atualizado: agora_(), email: u.email, solicitante: u.nome, analise: {}, gerente: {}, diretoria: {},
+        atualizado: agora_(), chegada: chegada_(), email: u.email, solicitante: u.nome, analise: {}, gerente: {}, diretoria: {},
         liberacao: {}, historico: [], excluida: '', rev: 1 }, x);
       hist_(o, u, 'criou', '', 0);
       if (d.enviar) { o.status = ST.ANALISE; hist_(o, u, 'enviou para análise', '', 1); }
@@ -497,7 +461,6 @@ function analisarOperacao(n, d, rev) {
   mexer_(n, rev, o => {
     if (!podeAnalisar_(u, o)) throw new Error(o.status !== ST.ANALISE ? 'Esta operação não está aguardando análise (está "' + o.status + '").' : 'Você não analisa operações desta agência.');
     if (d.acao === 'pendencia') {
-      if (!parecer) throw new Error('Escreva o que o atendente precisa corrigir.');
       o.status = ST.PENDENTE;
       o.analise = Object.assign({}, o.analise, { pendencia: { texto: parecer, por: u.nome, em: agora_() } });
       hist_(o, u, 'devolveu ao atendente', parecer, 1);
@@ -511,7 +474,6 @@ function analisarOperacao(n, d, rev) {
     });
     if (sem.length) throw new Error('Marque no checklist da análise: ' + sem.join(', ') + '.');
     if (RECOMENDACOES.indexOf(d.recomendacao) < 0) throw new Error('Escolha a recomendação da análise.');
-    if (!parecer) throw new Error('Escreva o parecer da análise.');
     o.status = ST.GERENTE;
     o.analise = { itens: itens, risco: RISCOS.indexOf(d.risco) >= 0 ? d.risco : '', recomendacao: d.recomendacao,
       parecer: parecer, por: u.nome, email: u.email, em: agora_() };
@@ -520,7 +482,7 @@ function analisarOperacao(n, d, rev) {
   return resposta_(n);
 }
 
-// gerente: d = { acao: 'enviar' | 'devolver', iap, voto, parecer }
+// gerente: d = { acao: 'enviar' | 'devolver', iap, parecer }. Ao enviar, o voto do gerente é favorável.
 function votarGerente(n, d, rev) {
   const u = euGrava_();
   d = d || {};
@@ -528,7 +490,6 @@ function votarGerente(n, d, rev) {
   mexer_(n, rev, o => {
     if (!podeVotar_(u, o)) throw new Error(o.status !== ST.GERENTE ? 'Esta operação não está com o gerente (está "' + o.status + '").' : 'Você não vota em operações desta agência.');
     if (d.acao === 'devolver') {
-      if (!parecer) throw new Error('Escreva o motivo para devolver para a análise.');
       o.status = ST.ANALISE;
       hist_(o, u, 'devolveu para a análise', parecer, 2);
       return;
@@ -536,27 +497,26 @@ function votarGerente(n, d, rev) {
     if (d.acao !== 'enviar') throw new Error('Ação inválida.');
     const iapTxt = String(d.iap == null ? '' : d.iap).trim();
     if (!iapTxt || !/^-?[\d.,]+$/.test(iapTxt)) throw new Error('Informe o IAP (só números).');
-    if (VOTOS.indexOf(d.voto) < 0) throw new Error('Escolha o seu voto: Favorável ou Desfavorável.');
-    if (d.voto === 'Desfavorável' && !parecer) throw new Error('Para votar desfavorável, escreva o motivo no parecer.');
     o.status = ST.DIRETORIA;
-    o.gerente = { iap: num_(iapTxt), voto: d.voto, parecer: parecer, por: u.nome, email: u.email, em: agora_() };
-    hist_(o, u, 'votou ' + d.voto.toLowerCase() + ' e enviou à diretoria', parecer, 3);
+    o.gerente = { iap: num_(iapTxt), voto: 'Favorável', parecer: parecer, por: u.nome, email: u.email, em: agora_() };
+    hist_(o, u, 'votou favorável e enviou à diretoria', parecer, 3);
   });
   return resposta_(n);
 }
 
-// diretoria: acao = 'aprovar' | 'reprovar' | 'devolver' (texto obrigatório para reprovar e devolver)
+// diretoria: acao = 'aprovar' | 'reprovar' | 'devolver' | 'estender' (motivo só é obrigatório para reprovar)
 function decidirDiretoria(n, acao, texto, rev) {
   const u = euGrava_();
   texto = txt_(texto, 4000, 'Parecer da diretoria');
-  const st = { aprovar: ST.APROVADA, reprovar: ST.REPROVADA, devolver: ST.GERENTE }[acao];
+  const st = { aprovar: ST.APROVADA, reprovar: ST.REPROVADA, devolver: ST.GERENTE, estender: ST.ESTENDIDA }[acao];
   if (!st) throw new Error('Ação inválida.');
-  if (acao !== 'aprovar' && !texto) throw new Error('Escreva o motivo para ' + (acao === 'reprovar' ? 'reprovar.' : 'devolver ao gerente.'));
+  if (acao === 'reprovar' && !texto) throw new Error('Escreva o motivo para reprovar.');
   mexer_(n, rev, o => {
-    if (!podeDecidir_(u, o)) throw new Error(o.status !== ST.DIRETORIA ? 'Esta operação não está aguardando a diretoria (está "' + o.status + '").' : 'Você não aprova operações desta agência.');
-    if (acao === 'devolver') {
-      hist_(o, u, 'devolveu ao gerente', texto, 3);
-    } else {
+    if (!podeDecidir_(u, o)) throw new Error(NA_DIRETORIA.indexOf(o.status) < 0 ? 'Esta operação não está aguardando a diretoria (está "' + o.status + '").' : 'Você não aprova operações desta agência.');
+    if (acao === 'estender' && o.status === ST.ESTENDIDA) throw new Error('Esta operação já está em análise estendida.');
+    if (acao === 'devolver') hist_(o, u, 'devolveu ao gerente', texto, 3);
+    else if (acao === 'estender') hist_(o, u, 'pediu análise estendida', texto, 3);
+    else {
       o.diretoria = { decisao: st, texto: texto, por: u.nome, email: u.email, em: agora_() };
       hist_(o, u, acao === 'aprovar' ? 'aprovou' : 'reprovou', texto, acao === 'aprovar' ? 4 : 3);
     }
@@ -665,8 +625,8 @@ function getData() {
     agencias: AGENCIAS,
     perfis: perfis,
     permInfo: PERM_INFO,
-    listas: { modalidades: MODALIDADES, garantias: TIPOS_GARANTIA, checkSolicitacao: CHECK_SOLICITACAO,
-      checkAnalise: CHECK_ANALISE, recomendacoes: RECOMENDACOES, riscos: RISCOS, votos: VOTOS, status: STATUS },
+    listas: { modalidades: MODALIDADES, checkSolicitacao: CHECK_SOLICITACAO,
+      checkAnalise: CHECK_ANALISE, recomendacoes: RECOMENDACOES, riscos: RISCOS, status: STATUS },
     operacoes: ops,
     pessoas: pessoas,
     central: u.tecnico ? {

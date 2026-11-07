@@ -11,11 +11,10 @@ const DEV = 'dev@credisis.com.br', AT2 = 'atendente2@credisis.com.br', AT3 = 'at
 const op = (r, n) => r.operacoes.find(o => o.n === n);
 
 const OP = {
-  cooperado: 'Maria da Silva', documento: '529.982.247-25', conta: '12345-6', numero_operacao: 'MN-2026-0001',
+  cooperado: 'Maria da Silva', conta: '12345-6', numero_operacao: 'MN-2026-0001',
   modalidade: 'Crédito pessoal', valor: 'R$ 15.000,00', prazo: '24', agencia: '002',
   checklist: { spc: true, scr: true, cadastro: true, renda: true, documentos: true, proposta: false },
-  dados: { finalidade: 'Reforma da casa', tem_avalista: 'sim', avalistas: [{ nome: 'João Souza', documento: '111.444.777-35' }],
-    tem_garantia: 'sim', garantias: [{ tipo: 'Alienação fiduciária de veículo', descricao: 'Gol 2020 placa ABC1D23', valor: '40.000,00' }] }
+  dados: { finalidade: 'Reforma da casa', tem_avalista: 'sim', tem_garantia: 'não' }
 };
 
 console.log('Setup e pessoas');
@@ -72,33 +71,41 @@ console.log('Caminho da operação');
 let N;
 t('atendente salva rascunho', () => { const r = como(AT2, 'salvarOperacao', { cooperado: 'Maria', agencia: '002' }); N = r.ultimo; igual(op(r, N).status, 'Rascunho'); igual(op(r, N).excluir, true); });
 t('não envia incompleto (lista o que falta)', () => barra(() => como(AT2, 'enviarAnalise', N, null), 'número da operação na mesa de negócios'));
-t('CPF inválido é recusado', () => barra(() => como(AT2, 'salvarOperacao', Object.assign({}, OP, { documento: '123.456.789-00' })), 'CPF ou CNPJ inválido'));
-t('avalista marcado sem dados não envia', () => barra(() => como(AT2, 'salvarOperacao', Object.assign({}, OP, { enviar: true, dados: Object.assign({}, OP.dados, { avalistas: [] }) })), 'nome e CPF do avalista'));
+t('sem a conta não envia', () => barra(() => como(AT2, 'salvarOperacao', Object.assign({}, OP, { enviar: true, conta: '' })), 'conta do cooperado'));
+t('sem responder avalista não envia', () => barra(() => como(AT2, 'salvarOperacao', Object.assign({}, OP, { enviar: true, dados: Object.assign({}, OP.dados, { tem_avalista: '' }) })), 'se possui avalista'));
 t('atendente de outra agência não cadastra para 002', () => barra(() => como(AT3, 'salvarOperacao', OP), 'agência 002'));
 t('analista não cadastra operação', () => barra(() => como(AN, 'salvarOperacao', OP), 'não cadastra'));
 t('corrige e envia para análise', () => {
   let r = como(AT2, 'getData'); const o = op(r, N);
   r = como(AT2, 'salvarOperacao', Object.assign({}, OP, { n: N, rev: o.rev, enviar: true }));
-  igual(op(r, N).status, 'Em análise'); igual(op(r, N).valor, 15000); igual(op(r, N).documento, '52998224725'); igual(op(r, N).editar, false);
+  igual(op(r, N).status, 'Em análise'); igual(op(r, N).valor, 15000); igual(op(r, N).dados.tem_avalista, 'sim'); if (!op(r, N).chegada) throw new Error('sem chegada'); igual(op(r, N).editar, false);
 });
 t('atendente da 003 não vê', () => igual(!!op(como(AT3, 'getData'), N), false));
 t('depois de enviada, atendente não altera', () => barra(() => como(AT2, 'salvarOperacao', Object.assign({}, OP, { n: N })), 'já foi enviada'));
 t('atendente não analisa', () => barra(() => como(AT2, 'analisarOperacao', N, { acao: 'concluir' }), 'não analisa'));
 t('análise sem checklist é recusada', () => barra(() => como(AN, 'analisarOperacao', N, { acao: 'concluir', recomendacao: 'Favorável', parecer: 'ok' }), 'Capacidade de pagamento'));
-t('analista devolve com pendência', () => { const r = como(AN, 'analisarOperacao', N, { acao: 'pendencia', parecer: 'Falta comprovante de residência' }); igual(op(r, N).status, 'Pendente'); igual(op(r, N).analise.pendencia.texto, 'Falta comprovante de residência'); });
+t('analista devolve sem escrever motivo', () => { const r = como(AN, 'analisarOperacao', N, { acao: 'pendencia' }); igual(op(r, N).status, 'Pendente'); });
 t('atendente reenvia', () => { const r = como(AT2, 'enviarAnalise', N, op(como(AT2, 'getData'), N).rev); igual(op(r, N).status, 'Em análise'); });
 t('conflito de edição (rev antigo)', () => barra(() => como(AN, 'analisarOperacao', N, { acao: 'pendencia', parecer: 'x' }, 1), 'alterada por outra pessoa'));
 const ITENS = { capacidade: 'ok', restricoes: 'ok', endividamento: 'ok', garantias: 'ok', documentacao: 'nok' };
-t('analista conclui (capacidade ok)', () => { const r = como(AN, 'analisarOperacao', N, { acao: 'concluir', itens: ITENS, risco: 'B', recomendacao: 'Favorável com ressalvas', parecer: 'Renda compatível' }); const o = op(r, N); igual(o.status, 'Com o gerente'); igual(o.analise.itens.capacidade, 'ok'); igual(o.analise.risco, 'B'); });
+t('analista conclui (capacidade ok)', () => { const r = como(AN, 'analisarOperacao', N, { acao: 'concluir', itens: ITENS, risco: 'B', recomendacao: 'Favorável com ressalvas' }); const o = op(r, N); igual(o.status, 'Com o gerente'); igual(o.analise.itens.capacidade, 'ok'); igual(o.analise.risco, 'B'); });
 t('analista não vota', () => barra(() => como(AN, 'votarGerente', N, { acao: 'enviar', iap: '1', voto: 'Favorável' }), 'não vota'));
 t('gerente sem IAP é recusado', () => barra(() => como(GE, 'votarGerente', N, { acao: 'enviar', voto: 'Favorável' }), 'IAP'));
-t('voto desfavorável sem parecer é recusado', () => barra(() => como(GE, 'votarGerente', N, { acao: 'enviar', iap: '2,5', voto: 'Desfavorável' }), 'motivo'));
-t('gerente inclui IAP, vota e envia', () => { const r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '2,75', voto: 'Favorável', parecer: 'Bom cooperado' }); const o = op(r, N); igual(o.status, 'Na diretoria'); igual(o.gerente.iap, 2.75); });
+t('gerente devolve para a análise sem motivo e recebe de volta', () => {
+  let r = como(GE, 'votarGerente', N, { acao: 'devolver' }); igual(op(r, N).status, 'Em análise');
+  r = como(AN, 'analisarOperacao', N, { acao: 'concluir', itens: ITENS, recomendacao: 'Favorável' }); igual(op(r, N).status, 'Com o gerente');
+});
+t('gerente inclui IAP e envia (voto favorável automático)', () => { const r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '2,75', voto: 'Desfavorável' }); const o = op(r, N); igual(o.status, 'Na diretoria'); igual(o.gerente.iap, 2.75); igual(o.gerente.voto, 'Favorável'); });
 t('gerente não aprova', () => barra(() => como(GE, 'decidirDiretoria', N, 'aprovar', '', null), 'não aprova'));
 t('reprovar sem motivo é recusado', () => barra(() => como(DI, 'decidirDiretoria', N, 'reprovar', '', null), 'motivo'));
-t('diretoria devolve ao gerente e ele reenvia', () => {
-  let r = como(DI, 'decidirDiretoria', N, 'devolver', 'Rever o IAP', null); igual(op(r, N).status, 'Com o gerente');
-  r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '3', voto: 'Favorável' }); igual(op(r, N).status, 'Na diretoria');
+t('diretoria devolve ao gerente sem motivo e ele reenvia', () => {
+  let r = como(DI, 'decidirDiretoria', N, 'devolver', '', null); igual(op(r, N).status, 'Com o gerente');
+  r = como(GE, 'votarGerente', N, { acao: 'enviar', iap: '3' }); igual(op(r, N).status, 'Na diretoria');
+});
+t('análise estendida mantém a ordem de chegada', () => {
+  const antes = op(como(DI, 'getData'), N).chegada;
+  let r = como(DI, 'decidirDiretoria', N, 'estender', '', null); igual(op(r, N).status, 'Análise estendida'); igual(op(r, N).chegada, antes); igual(op(r, N).decidir, true);
+  barra(() => como(DI, 'decidirDiretoria', N, 'estender', '', null), 'já está');
 });
 t('ver como: diretoria não aprova no modo Ver como', () => {
   como(DEV, 'verComo', 'Matriz', 'diretoria');

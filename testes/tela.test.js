@@ -52,7 +52,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
   await passo('atendente abre e vê o rodapé com a versão', async () => {
     await entrar(AT2);
     const r = await page.textContent('#rodape');
-    if (!/Comitê de Crédito · Versão 1 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
+    if (!/Comitê de Crédito · Versão 2 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
   });
   await passo('enviar incompleto mostra o que falta e marca em vermelho', async () => {
     await page.click('[data-a="aba"][data-id="nova"]');
@@ -62,13 +62,6 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await foto('01-falta-preencher');
     await fechaPop();
     if (await page.locator('.campo.erro').count() < 3) throw new Error('campos não ficaram vermelhos');
-  });
-  await passo('máscara e validação do CPF', async () => {
-    await page.fill('[data-f="documento"]', '12345678900');
-    igual(await page.inputValue('[data-f="documento"]'), '123.456.789-00');
-    await page.click('[data-f="conta"]');
-    if (!(await page.locator('[data-campo="documento"].erro').count())) throw new Error('CPF inválido não ficou vermelho');
-    await page.fill('[data-f="documento"]', '52998224725');
   });
   await passo('preenche tudo e envia para análise', async () => {
     await page.fill('[data-f="conta"]', '12345-6');
@@ -80,13 +73,10 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.fill('[data-f="dados.finalidade"]', 'Compra de caminhonete para a fazenda');
     for (const c of await page.$$('[data-fc]')) { if ((await c.getAttribute('data-fc')) !== 'proposta') await c.check(); }
     await page.click('[data-a="fset"][data-p="dados.tem_avalista"][data-v="sim"]');
-    await page.fill('[data-f="dados.avalistas.0.nome"]', 'João Souza');
-    await page.fill('[data-f="dados.avalistas.0.documento"]', '11144477735');
     await page.click('[data-a="fset"][data-p="dados.tem_garantia"][data-v="sim"]');
-    await page.selectOption('[data-f="dados.garantias.0.tipo"]', 'Alienação fiduciária de veículo');
-    await page.fill('[data-f="dados.garantias.0.descricao"]', 'Hilux 2024, placa ABC1D23');
-    await page.fill('[data-f="dados.garantias.0.valor"]', '30000000');
+    if (await page.locator('[data-f*="avalistas"], [data-f*="garantias"], [data-f="documento"]').count()) throw new Error('ainda pede dados do avalista, da garantia ou CPF');
     igual(await page.textContent('[data-cont="op"]'), '5/5');
+    igual(await page.textContent('[data-cont="aval"]'), '2/2');
     await foto('02-formulario');
     await page.click('[data-a="enviarForm"]');
     igual(await popTitulo(), 'Enviada para análise');
@@ -100,17 +90,25 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     for (const k of ['capacidade', 'restricoes', 'endividamento', 'garantias', 'documentacao']) await page.click(`[data-a="aitem"][data-k="${k}"][data-v="ok"]`);
     await page.selectOption('#a_risco', 'B');
     await page.click('[data-a="aset"][data-k="recomendacao"][data-v="Favorável"]');
-    await page.fill('#a_parecer', 'Renda comprovada compatível com a parcela. Garantia cobre 66% do valor.');
     await foto('04-painel-analise');
     await page.click('[data-a="analiseOk"]');
     igual(await popTitulo(), 'Análise concluída'); await fechaPop();
   });
-  await passo('gerente: IAP, voto e envia à diretoria', async () => {
+  await passo('gerente: IAP e envia à diretoria (voto favorável automático)', async () => {
     await entrar(GE); await abrirOp();
+    if (await page.locator('[data-k="voto"]').count()) throw new Error('ainda pede o voto');
+    await page.click('[data-a="gerEnviar"]'); igual(await popTitulo(), 'Falta o IAP'); await fechaPop();
     await page.fill('#a_iap', '3,25');
-    await page.click('[data-a="aset"][data-k="voto"][data-v="Favorável"]');
     await page.click('[data-a="gerEnviar"]');
     igual(await popTitulo(), 'Enviada à diretoria'); await fechaPop();
+  });
+  await passo('mais duas operações chegam à diretoria', async () => {
+    for (const [coop, conta] of [['Segundo Cooperado', '222-2'], ['Terceiro Cooperado', '333-3']]) {
+      const n = como(AT2, 'salvarOperacao', { enviar: true, cooperado: coop, conta: conta, numero_operacao: 'M' + conta, modalidade: 'Crédito pessoal', valor: 1000, prazo: 10, agencia: '002',
+        checklist: { spc: true, scr: true, cadastro: true, renda: true, documentos: true }, dados: { finalidade: 'x', tem_avalista: 'não', tem_garantia: 'não' } }).ultimo;
+      como(AN, 'analisarOperacao', n, { acao: 'concluir', itens: { capacidade: 'ok', restricoes: 'ok', endividamento: 'ok', garantias: 'ok', documentacao: 'ok' }, recomendacao: 'Favorável' });
+      como(GE, 'votarGerente', n, { acao: 'enviar', iap: '2' });
+    }
   });
   await passo('Ver como: dev vê como diretoria e o servidor barra a aprovação', async () => {
     await entrar(DEV);
@@ -119,25 +117,51 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.selectOption('#vcPf', 'diretoria');
     await page.click('[data-a="verComo"]');
     await page.waitForSelector('#vcbar:not([hidden])');
-    await abrirOp();
+    await page.click('[data-a="filtro"][data-id="todas"]');
+    await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.click('[data-a="dirDecide"][data-v="aprovar"]');
     igual(await popTitulo(), 'Você está no modo Ver como');
     await page.waitForTimeout(1200); await foto('06-ver-como-barrado');
     await page.click('.pop .bts .btn-primary');
     await page.waitForSelector('#vcbar', { state: 'hidden' });
   });
-  await passo('diretoria aprova', async () => {
-    await entrar(DI); await abrirOp();
+  await passo('diretoria: janela no meio, fila por chegada, estende e aprova seguindo para a próxima', async () => {
+    await entrar(DI);
+    const ordem = await page.$$eval('.item .mid b', l => l.map(x => x.textContent));
+    igual(ordem.join(' | '), 'Maria da Silva | Segundo Cooperado | Terceiro Cooperado');
+    await abrirOp();
+    if (!(await page.locator('.painel.centro').count())) throw new Error('não abriu no meio da tela');
+    igual(await page.textContent('.fila .pos'), '1 de 3');
+    await page.click('[data-a="navOp"][data-d="1"]');
+    igual(await page.textContent('.painel h2'), 'Segundo Cooperado');
+    await page.keyboard.press('ArrowLeft');
+    igual(await page.textContent('.painel h2'), 'Maria da Silva');
+    await page.waitForTimeout(400); await foto('06b-diretoria-janela');
+    const titulo = t => page.waitForFunction(x => document.querySelector('.painel h2') && document.querySelector('.painel h2').textContent === x, t);
     await page.click('[data-a="dirDecide"][data-v="aprovar"]');
-    igual(await popTitulo(), 'Operação aprovada'); await fechaPop();
+    await titulo('Segundo Cooperado');
+    await page.click('[data-a="dirDecide"][data-v="estender"]');
+    await titulo('Terceiro Cooperado');
+    await page.click('[data-a="dirDecide"][data-v="devolver"]');
+    await titulo('Segundo Cooperado');
+    igual((await page.textContent('.painel .ph .tag')).trim(), 'Análise estendida');
+    await page.click('[data-a="dirDecide"][data-v="reprovar"]');
+    igual(await popTitulo(), 'Escreva o motivo'); await fechaPop();
+    await page.fill('#a_texto', 'Sem capacidade');
+    await page.click('[data-a="dirDecide"][data-v="reprovar"]');
+    igual(await popTitulo(), 'Operação reprovada'); await fechaPop();
+  });
+  await passo('filtro Analisadas', async () => {
+    await page.click('[data-a="filtro"][data-id="analisadas"]');
+    igual(await page.locator('.item').count(), 3);
   });
   await passo('atendente registra a liberação', async () => {
-    await entrar(AT2); await abrirOp();
+    await entrar(AT2); await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.fill('#a_contrato', 'CT-2026-0042');
     await page.click('[data-a="liberarOp"]');
     igual(await popTitulo(), 'Liberação registrada'); await fechaPop();
     await page.click('[data-a="filtro"][data-id="todas"]');
-    await abrirOp();
+    await page.click('.item[data-n="1"]'); await page.waitForSelector('.painel');
     await page.waitForTimeout(400); await foto('07-painel-liberada');
     igual((await page.locator('.et.feito').count()), 5);
     await page.click('.painel [data-a="fecharPainel"]');
@@ -150,7 +174,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.click('[data-a="descartarForm"]');
     await page.click('[data-a="aba"][data-id="ops"]');
     await page.click('[data-a="filtro"][data-id="andamento"]');
-    await abrirOp();
+    await page.click('.item:has-text("Pedro Rascunho")'); await page.waitForSelector('.painel');
     await page.click('[data-a="excluirOp"]');
     igual((await page.textContent('[data-a="excluirOp"]')).trim(), 'Confirmar exclusão');
     await page.click('[data-a="excluirOp"]');
