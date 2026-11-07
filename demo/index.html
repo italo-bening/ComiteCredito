@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comit&ecirc; de Cr&eacute;dito CrediBr&aacute;s</title>
+
+<!-- Faixa vermelha de erro: primeiro script, separado do resto -->
+<script>
+(function () {
+  var caixa = null;
+  function ctx() { try { return window.__ctx ? window.__ctx() : {}; } catch (e) { return {}; } }
+  function mostrar(msg) {
+    var c = ctx(), agora = new Date();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    var det = 'Mensagem: ' + msg +
+      '\nVersão da tela: ' + (c.versaoTela || '?') + ' \u00b7 Versão do servidor: ' + (c.versao || '?') +
+      '\nE-mail: ' + (c.email || '?') + '\nAcesso: ' + (c.acesso || '?') +
+      '\nDia e hora: ' + p(agora.getDate()) + '/' + p(agora.getMonth() + 1) + '/' + agora.getFullYear() + ' ' + p(agora.getHours()) + ':' + p(agora.getMinutes());
+    if (!document.body) { document.addEventListener('DOMContentLoaded', function () { mostrar(msg); }); return; }
+    if (!caixa) {
+      caixa = document.createElement('div');
+      caixa.setAttribute('role', 'alert');
+      caixa.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b42318;color:#fff;padding:12px 16px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+      caixa.innerHTML = '<div style="max-width:1140px;margin:0 auto"><div style="display:flex;gap:12px;align-items:flex-start">' +
+        '<div style="flex:1"><b>Algo deu errado na página.</b> Mande um print desta mensagem (ou cole os detalhes) para o desenvolvedor.</div>' +
+        '<button type="button" data-x="copiar" style="background:#fff;color:#b42318;border:0;border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer">Copiar detalhes</button>' +
+        '<button type="button" data-x="fechar" aria-label="Fechar" title="Fechar" style="background:none;border:0;color:#fff;font-size:18px;cursor:pointer;line-height:1">&times;</button></div>' +
+        '<pre data-x="det" style="margin:10px 0 0;background:rgba(0,0,0,.35);padding:10px 12px;border-radius:10px;white-space:pre-wrap;font:12.5px/1.5 ui-monospace,Consolas,monospace"></pre></div>';
+      document.body.appendChild(caixa);
+      caixa.addEventListener('click', function (ev) {
+        var x = ev.target.getAttribute('data-x');
+        if (x === 'fechar') { caixa.remove(); caixa = null; }
+        if (x === 'copiar') {
+          var pre = caixa.querySelector('[data-x="det"]');
+          var sel = function () { var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); };
+          try { navigator.clipboard.writeText(pre.textContent).then(function () { ev.target.textContent = 'Copiado'; }, sel); } catch (e) { sel(); }
+        }
+      });
+    }
+    caixa.querySelector('[data-x="det"]').textContent = det;
+  }
+  window.mostrarErro = mostrar;
+  window.addEventListener('error', function (e) { mostrar((e && e.message) || 'Erro desconhecido'); });
+  window.addEventListener('unhandledrejection', function (e) { var r = e && e.reason; mostrar((r && r.message) || String(r)); });
+})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+
+<style>
+:root {
+  color-scheme: light;
+  --primary: #0d6532; --g2: #7cc242; --warn: #f4c21b; --done: #1f9d55; --danger: #d64545; --info: #3b6cf0;
+  --bg: #fbfbf7; --fg: #16211a; --muted: #5b6760; --subtle: #8b958f;
+  --border: #e4e7df; --card: #ffffff; --surface: #f3f5ee; --hover: #ebeee6;
+  --primary-deep: color-mix(in srgb, var(--primary) 45%, #000);
+  --primary-soft: color-mix(in srgb, var(--primary) 9%, var(--card));
+  --primary-line: color-mix(in srgb, var(--primary) 24%, var(--card));
+  --blur: 14px;
+  --glass: color-mix(in srgb, var(--bg) 72%, transparent);
+  --glass-line: color-mix(in srgb, #fff 55%, transparent);
+  --r: 12px; --r-btn: calc(var(--r) * .7); --r-input: calc(var(--r) * .85); --r-card: calc(var(--r) + 4px); --r-lg: calc(var(--r) * 2); --pill: 999px;
+  --sh-float: 0 20px 50px -20px rgba(16, 60, 34, .35);
+  --sh-card: 0 10px 30px -18px rgba(16, 40, 26, .28);
+  --sh-hover: 0 6px 18px -8px rgba(0, 0, 0, .18);
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --grad: radial-gradient(90% 260% at 85% 0%, color-mix(in srgb, var(--primary) 60%, #000) 0%, transparent 60%),
+          linear-gradient(160deg, var(--primary-deep), color-mix(in srgb, var(--primary) 26%, #000));
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c120f; --fg: #e7efe9; --muted: #9aaba1; --subtle: #6b7b72;
+  --border: #223029; --card: #131b17; --surface: #18221d; --hover: #1f2b25;
+  --primary-soft: color-mix(in srgb, var(--primary) 20%, var(--card));
+  --primary-line: color-mix(in srgb, var(--primary) 45%, var(--card));
+  --glass-line: color-mix(in srgb, #fff 10%, transparent);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.cap { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- topo ---------- */
+header.top { position: sticky; top: 0; z-index: 40; }
+.topbar { position: relative; z-index: 3; color: #fff; background: var(--grad); border-bottom: 1px solid rgba(255, 255, 255, .14); }
+.topbar .wrap { display: flex; align-items: center; gap: 10px; min-height: 60px; }
+.logo { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--r-input); color: #fff; text-decoration: none; font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.logo svg { width: 24px; height: 26px; display: block; }
+.sis { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 0 0 12px; border: 0; border-left: 1px solid rgba(255, 255, 255, .25); background: none; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.sis[disabled] { cursor: default; }
+.sis .chev { color: var(--g2); font-size: 12px; }
+.grow { flex: 1; }
+.pill-ag { background: rgba(0, 0, 0, .45); border-radius: var(--pill); padding: 4px 10px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.devbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px dashed var(--g2); border-radius: var(--r-btn); color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; }
+.devbtn:hover { background: rgba(255, 255, 255, .08); }
+.ibtn { width: 36px; height: 36px; flex: none; display: inline-grid; place-items: center; border-radius: var(--r-btn); border: 1px solid rgba(255, 255, 255, .12); background: rgba(0, 0, 0, .28); color: #fff; }
+.ibtn:hover { background: rgba(0, 0, 0, .4); }
+.ibtn.lua { color: var(--g2); }
+.ibtn.gira svg { animation: gira 1s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.userbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 4px; border: 0; border-radius: var(--pill); background: rgba(255, 255, 255, .12); color: #fff; font-weight: 600; }
+.userbtn .chev { color: var(--g2); font-size: 11px; }
+.av { width: 28px; height: 28px; flex: none; border-radius: 50%; display: inline-grid; place-items: center; background: var(--g2); color: #0b2a17; font-size: 11.5px; font-weight: 800; }
+.mwrap { position: relative; }
+@media (max-width: 860px) { .devbtn { display: none; } }
+@media (max-width: 600px) { .logo span, .userbtn .nm, .userbtn .chev { display: none; } .userbtn { padding: 0 4px; } .topbar .wrap { gap: 6px; } .pill-ag { display: none; } }
+
+/* ---------- menus ---------- */
+.menu { position: absolute; top: calc(100% + 8px); width: 300px; max-width: calc(100vw - 24px); z-index: 50; padding: 8px; color: var(--fg);
+  background: color-mix(in srgb, var(--card) 97%, transparent); backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-float); animation: desce .18s ease; }
+.menu.esq { left: 0; } .menu.dir { right: 0; }
+@keyframes desce { from { opacity: 0; transform: translateY(-6px); } }
+.menu .grp + .grp { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+.menu .cap { padding: 6px 8px 4px; }
+.mi { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px; border: 0; border-radius: var(--r-btn); background: none; text-align: left; text-decoration: none; color: var(--fg); }
+.mi:hover { background: var(--hover); }
+.mi .ic { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: var(--r-btn); background: var(--primary-soft); color: var(--primary); }
+.mi.on .ic { background: var(--primary); color: #fff; }
+.mi .tx { flex: 1; min-width: 0; }
+.mi .tx b { display: block; font-weight: 600; }
+.mi .tx small { display: block; color: var(--muted); font-size: 12.5px; }
+.mi .ok { color: var(--primary); }
+.me { display: flex; gap: 10px; align-items: center; padding: 8px; }
+.me .av { width: 40px; height: 40px; font-size: 14px; }
+.me b { display: block; }
+.me .em { color: var(--muted); font-size: 12.5px; word-break: break-all; }
+.me .ac { color: var(--primary); font-weight: 600; font-size: 12.5px; }
+:root[data-theme="dark"] .me .ac { color: var(--g2); }
+.vcform { display: flex; gap: 6px; padding: 4px 8px 8px; flex-wrap: wrap; }
+.vcform select { flex: 1; min-width: 100px; }
+
+/* ---------- abas ---------- */
+.tabsbar { position: relative; z-index: 1; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4); border-bottom: 1px solid var(--border); }
+.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.nav button { display: inline-flex; align-items: center; gap: 8px; padding: 13px 14px 11px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.nav button:hover { color: var(--fg); }
+.nav button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+:root[data-theme="dark"] .nav button[aria-selected="true"] { color: var(--g2); border-bottom-color: var(--g2); }
+.cnt { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--pill); background: var(--primary-deep); color: #fff; font-size: 11px; font-weight: 700; }
+
+/* ---------- faixa Ver como ---------- */
+.vcbar { background: color-mix(in srgb, var(--warn) 24%, var(--bg)); border-bottom: 1px solid color-mix(in srgb, var(--warn) 60%, transparent); }
+.vcbar .wrap { display: flex; align-items: center; gap: 10px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+.vcbar .tx { flex: 1; min-width: 200px; }
+
+/* ---------- conteúdo ---------- */
+main { flex: 1; padding: 20px 0 32px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-card); padding: 16px 18px; }
+h2.tit { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+
+/* ---------- estados ---------- */
+.estado { max-width: 560px; margin: 40px auto; padding: 32px 24px; text-align: center; background: var(--surface); border-radius: var(--r-card); }
+.estado .bol { width: 52px; height: 52px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 50%; background: var(--card); box-shadow: var(--sh-card); font-size: 20px; }
+.estado h2 { margin: 0 0 6px; font-size: 18px; }
+.estado p { margin: 0 0 6px; color: var(--muted); }
+.anel { width: 26px; height: 26px; border: 3px solid var(--primary-line); border-top-color: var(--primary); border-radius: 50%; animation: gira .8s linear infinite; }
+
+/* ---------- botões ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border: 1px solid transparent; border-radius: var(--r-btn); font-size: 14px; font-weight: 600; white-space: nowrap; transition: opacity .2s, background .2s, box-shadow .2s; text-decoration: none; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { opacity: .88; }
+.btn-outline { background: var(--card); border-color: var(--border); color: var(--fg); }
+.btn-outline:hover { background: var(--hover); }
+.btn-ghost { background: transparent; color: var(--muted); }
+.btn-ghost:hover { background: var(--hover); color: var(--fg); }
+.btn-danger, .btn.confirmar { background: var(--danger); color: #fff; border-color: transparent; }
+.btn.confirmar { animation: treme .35s; }
+@keyframes treme { 20%, 60% { transform: translateX(-3px); } 40%, 80% { transform: translateX(3px); } }
+.btn-sm { height: 30px; padding: 0 12px; font-size: 13px; }
+.btn-lg { height: 46px; padding: 0 22px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.pillbtn { border-radius: var(--pill); }
+
+/* ---------- chips e etiquetas ---------- */
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--pill); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.chip:hover { background: var(--hover); }
+.chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip[disabled] { opacity: .5; cursor: not-allowed; }
+.chip .cnt { background: rgba(0, 0, 0, .18); height: 18px; min-width: 18px; }
+.chip.nok[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); }
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: var(--pill); font-size: 11px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; background: var(--surface); color: var(--muted); }
+.tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.tag.info { background: color-mix(in srgb, var(--info) 13%, var(--card)); color: var(--info); }
+.tag.wait { background: color-mix(in srgb, var(--warn) 22%, var(--card)); color: color-mix(in srgb, var(--warn) 55%, #000); }
+:root[data-theme="dark"] .tag.wait { color: var(--warn); }
+.tag.ok { background: color-mix(in srgb, var(--done) 14%, var(--card)); color: var(--done); }
+.tag.no { background: color-mix(in srgb, var(--danger) 13%, var(--card)); color: var(--danger); }
+.tag.plain::before { display: none; }
+.selo { display: inline-block; padding: 0 7px; border-radius: var(--pill); background: var(--primary-soft); border: 1px solid var(--primary-line); color: var(--primary); font-size: 11px; font-weight: 700; }
+
+/* ---------- lista de operações ---------- */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.busca { position: relative; flex: 1; min-width: 200px; }
+.busca svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--subtle); }
+.busca input.in { padding-left: 36px; }
+.lista { display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; gap: 14px; align-items: center; width: 100%; padding: 14px 16px; text-align: left; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-card); transition: box-shadow .2s, transform .2s; color: var(--fg); }
+.item:hover { box-shadow: var(--sh-hover); transform: translateY(-1px); }
+.item .nro { flex: none; width: 54px; text-align: center; font-weight: 800; color: var(--primary); }
+:root[data-theme="dark"] .item .nro { color: var(--g2); }
+.item .nro small { display: block; font-weight: 600; color: var(--subtle); font-size: 10.5px; }
+.item .mid { flex: 1; min-width: 0; }
+.item .mid b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .mid .sub { color: var(--muted); font-size: 12.5px; }
+.item .dir { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.item .val { font-weight: 700; }
+.item .prox { font-size: 12px; color: var(--muted); }
+.item.tarefa { border-color: var(--primary-line); box-shadow: inset 4px 0 0 var(--g2), var(--sh-card); }
+@media (max-width: 600px) { .item { flex-wrap: wrap; } .item .dir { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; } .item .nro { width: auto; } }
+.vazio { padding: 28px; text-align: center; color: var(--muted); background: var(--surface); border-radius: var(--r-card); }
+
+/* ---------- formulário ---------- */
+.campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.campo label, .campo .lb { font-size: 13px; font-weight: 600; color: var(--muted); }
+.campo .ob { color: var(--danger); }
+input.in, select.in, textarea.in { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--r-input); background: var(--card); transition: border-color .2s, box-shadow .2s; }
+textarea.in { height: auto; min-height: 84px; padding: 10px 12px; resize: vertical; }
+.in:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent); }
+.in.cheio { border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); }
+.campo.erro label, .campo.erro .lb { color: var(--danger); }
+.campo.erro .in { border-color: var(--danger); }
+.msgerro { display: flex; gap: 6px; align-items: center; color: var(--danger); font-size: 12.5px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.grid3 { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 10px; align-items: end; }
+.full { grid-column: 1 / -1; }
+@media (max-width: 600px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+.secao { background: var(--surface); border-radius: var(--r-card); padding: 14px; }
+.secao.erro { box-shadow: 0 0 0 2px var(--danger); }
+.secao > .hd { display: flex; align-items: center; gap: 10px; margin: 2px 4px 12px; }
+.secao > .hd .bola { width: 10px; height: 10px; border-radius: 50%; background: var(--g2); }
+.secao > .hd h3 { flex: 1; }
+.contador { padding: 2px 10px; border-radius: var(--pill); background: var(--card); border: 1px solid var(--border); font-size: 12px; font-weight: 700; color: var(--muted); }
+.contador.ok { background: var(--done); border-color: var(--done); color: #fff; }
+.secao > .bx { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px; }
+.barra { height: 6px; border-radius: var(--pill); background: var(--surface); overflow: hidden; }
+.barra > div { height: 100%; background: linear-gradient(90deg, var(--primary), var(--g2)); border-radius: var(--pill); transition: width .4s; }
+.chk { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r-btn); cursor: pointer; }
+.chk:hover { background: var(--hover); }
+.chk input { width: 18px; height: 18px; accent-color: var(--primary); flex: none; }
+.chk.erro { color: var(--danger); }
+.linha { display: grid; gap: 10px; padding: 10px; background: var(--surface); border-radius: var(--r-input); margin-bottom: 8px; }
+.form-acoes { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(transparent, var(--bg) 35%); }
+.aviso { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-card); background: color-mix(in srgb, var(--warn) 18%, var(--card)); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); }
+.aviso.no { background: color-mix(in srgb, var(--danger) 10%, var(--card)); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+
+/* ---------- indicador de passos ---------- */
+.passos { display: flex; align-items: flex-start; }
+.passo { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; gap: 6px; min-width: 0; }
+.passo::before { content: ""; position: absolute; top: 15px; right: 50%; width: 100%; height: 3px; background: var(--border); z-index: 0; }
+.passo:first-child::before { display: none; }
+.passo.feito::before, .passo.atual::before { background: linear-gradient(90deg, var(--primary), var(--g2)); }
+.passo .c { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); font-weight: 700; border: 2px solid var(--border); }
+.passo.feito .c { background: var(--primary); border-color: var(--primary); color: #fff; }
+.passo.atual .c { background: var(--card); border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 16%, transparent); }
+.passo b { font-size: 13px; }
+.passo small { color: var(--muted); font-size: 11.5px; }
+@media (max-width: 600px) { .passo:not(.atual) b, .passo:not(.atual) small { display: none; } }
+
+/* ---------- painel lateral ---------- */
+.fundo { position: fixed; inset: 0; z-index: 60; background: rgba(8, 20, 13, .38); backdrop-filter: blur(2px); }
+.novo .fundo { animation: aparece .3s; }
+@keyframes aparece { from { opacity: 0; } }
+.painel { position: fixed; top: 8px; right: 8px; bottom: 8px; z-index: 61; width: min(640px, calc(100vw - 16px)); display: flex; flex-direction: column; overflow: hidden;
+  background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4);
+  border: 1px solid var(--glass-line); border-radius: var(--r-lg); box-shadow: var(--sh-float); }
+.novo .painel { animation: entra .3s ease; }
+:root:not([data-theme="dark"]) .painel { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+@keyframes entra { from { transform: translateX(30px); opacity: 0; } }
+.painel .ph { position: relative; padding: 18px 56px 18px 20px; color: #fff; background: var(--grad); }
+.painel .ph .x { position: absolute; top: 14px; right: 14px; }
+.painel .ph .nro { color: var(--g2); font-weight: 800; font-size: 13px; letter-spacing: .04em; }
+.painel .ph h2 { margin: 2px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.025em; }
+.painel .ph .tag { box-shadow: 0 0 0 1px rgba(255, 255, 255, .2); }
+.painel .pb { flex: 1; overflow-y: auto; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.painel .pf { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; background: color-mix(in srgb, var(--card) 70%, transparent); }
+.bloco { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px 16px; }
+.bloco > .cap { margin-bottom: 8px; display: block; }
+.bloco.acao { border: 2px solid var(--primary-line); background: var(--primary-soft); }
+.dl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0; }
+.dl div { min-width: 0; }
+.dl dt { font-size: 12px; color: var(--muted); }
+.dl dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.dl .full dd { font-weight: 500; white-space: pre-wrap; }
+@media (max-width: 600px) { .dl { grid-template-columns: 1fr; } }
+.ck { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+.ck .s { color: var(--done); } .ck .n { color: var(--danger); } .ck .z { color: var(--subtle); }
+.texto { white-space: pre-wrap; margin: 6px 0 0; }
+.por { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+
+/* linha do tempo */
+.tl { display: flex; flex-direction: column; }
+.et { display: flex; gap: 12px; position: relative; padding-bottom: 14px; }
+.et:last-child { padding-bottom: 0; }
+.et::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--border); }
+.et:last-child::before { display: none; }
+.et.feito::before { background: var(--primary); }
+.et .b { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--border); color: var(--muted); font-size: 12px; z-index: 1; }
+.et.feito .b { background: var(--primary); border-color: var(--primary); color: #fff; }
+.et.atual .b { background: var(--card); border-color: var(--primary); color: var(--primary); animation: pulso 1.8s infinite; }
+.et.falhou .b { background: var(--danger); border-color: var(--danger); color: #fff; }
+.et.parou .b { background: var(--subtle); border-color: var(--subtle); color: #fff; }
+@keyframes pulso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent); } 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.et .t b { display: block; }
+.et .t small { color: var(--muted); font-size: 12.5px; }
+.nota { margin-top: 6px; padding: 8px 10px; border-radius: var(--r-input); background: var(--surface); font-size: 13px; white-space: pre-wrap; }
+.nota.no { background: color-mix(in srgb, var(--danger) 10%, var(--card)); color: color-mix(in srgb, var(--danger) 70%, var(--fg)); }
+.hist { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.hist .h { display: flex; gap: 10px; }
+.hist .h .q { flex: none; color: var(--subtle); width: 112px; font-variant-numeric: tabular-nums; }
+.hist .h .obs { color: var(--muted); white-space: pre-wrap; }
+
+/* ---------- pessoas e tipos ---------- */
+.pessoa .av { width: 40px; height: 40px; font-size: 14px; background: linear-gradient(135deg, var(--primary), var(--g2)); color: #fff; }
+.pessoa.off { opacity: .62; }
+.tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.tipo { display: flex; gap: 10px; align-items: flex-start; padding: 12px; text-align: left; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); color: var(--fg); }
+.tipo .ic { width: 34px; height: 34px; flex: none; border-radius: var(--r-btn); display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); }
+.tipo small { display: block; color: var(--muted); font-size: 12.5px; }
+.tipo[aria-pressed="true"] { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent); }
+.tipo[disabled] { opacity: .5; cursor: not-allowed; }
+.perms { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chave { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.chave input { position: absolute; opacity: 0; pointer-events: none; }
+.chave .sw { width: 40px; height: 22px; border-radius: var(--pill); background: var(--border); position: relative; transition: background .2s; flex: none; }
+.chave .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.chave input:checked + .sw { background: var(--done); }
+.chave input:checked + .sw::after { transform: translateX(18px); }
+.chave input:focus-visible + .sw { outline: 2px solid var(--primary); outline-offset: 2px; }
+.chave input:disabled + .sw { opacity: .5; }
+.acessos .ac { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface); border-radius: var(--r-input); margin-bottom: 6px; }
+.acessos .ac span { flex: 1; }
+
+/* ---------- popup ---------- */
+.pop-fundo { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: aparece .2s; }
+.pop { position: relative; width: min(420px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--sh-float); text-align: center; }
+.pop .faixa { height: 92px; background: var(--grad); }
+.pop .x { position: absolute; top: 12px; right: 12px; }
+.pop .circ { position: relative; width: 76px; height: 76px; margin: -46px auto 0; border-radius: 50%; display: grid; place-items: center; font-size: 30px; background: var(--card); color: var(--g2); border: 4px solid var(--card); }
+.pop .circ::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: color-mix(in srgb, var(--cor) 20%, var(--card)); border: 3px solid var(--cor); animation: desenha .45s ease both; }
+.pop .circ .ico { position: relative; color: var(--cor); animation: pula .45s .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.pop .onda { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--cor); opacity: 0; animation: onda 1.2s .5s ease-out 2; }
+.pop .onda.b { animation-delay: .8s; }
+@keyframes desenha { from { transform: scale(.3) rotate(-90deg); opacity: 0; } }
+@keyframes pula { from { transform: scale(0); } }
+@keyframes onda { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.8); opacity: 0; } }
+.pop .cont { padding: 12px 24px 22px; }
+.pop .cont > * { animation: sobe .35s ease both; }
+.pop .cont > :nth-child(1) { animation-delay: .45s; } .pop .cont > :nth-child(2) { animation-delay: .55s; } .pop .cont > :nth-child(3) { animation-delay: .65s; } .pop .cont > :nth-child(4) { animation-delay: .75s; }
+@keyframes sobe { from { transform: translateY(8px); opacity: 0; } }
+.pop h2 { margin: 6px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -.025em; }
+.pop p { margin: 0 0 12px; color: var(--muted); white-space: pre-wrap; }
+.pop .det { text-align: left; background: var(--surface); border-radius: var(--r-card); padding: 10px 14px; margin-bottom: 14px; }
+.pop .det div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; }
+.pop .det span { color: var(--muted); }
+.pop .det b { text-align: right; overflow-wrap: anywhere; }
+.pop .bts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.pop .bts .btn { height: 44px; border-radius: var(--pill); padding: 0 22px; }
+.confete { position: absolute; top: 60px; width: 8px; height: 12px; border-radius: 2px; animation: cai 1.4s ease-in forwards; pointer-events: none; }
+@keyframes cai { to { transform: translate(var(--dx), 300px) rotate(540deg); opacity: 0; } }
+
+/* ---------- toast ---------- */
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 95; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: var(--pill); background: #16211a; color: #fff; font-size: 14px; box-shadow: var(--sh-float); animation: toastIn .3s ease; }
+@keyframes toastIn { from { transform: translate(-50%, 20px); opacity: 0; } }
+.toast button { border: 0; background: none; color: #b9e58f; font-weight: 700; padding: 0; }
+
+/* ---------- rodapé ---------- */
+footer { padding: 16px; text-align: center; font-size: 12.5px; color: var(--subtle); }
+footer.alerta { color: var(--danger); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="38 91 98 104">
+    <path d="M122.35,154.97l-37.85,37.9-13.24-13.2c12.68-14.28,30.78-23.62,51.09-24.7" fill="#fff" fill-rule="evenodd"/>
+    <path d="M134.11,142.9l.17.17-5.99,5.99c-1.65-.13-3.3-.17-4.95-.17-22.66,0-42.93,10.24-56.43,26.39l-15.06-15.06c13.41-14.24,32.43-23.14,53.57-23.14,10.16,0,19.88,2.08,28.69,5.82" fill="#fff" fill-rule="evenodd"/>
+    <path d="M116.44,125.23l9.85,9.81c-7.51-2.56-15.54-3.95-23.87-3.95-21.88,0-41.54,9.55-55,24.7l-12.76-12.72c14.98-14.98,30.52-23.79,52.78-23.79,10.29,0,20.1,2.13,29,5.95" fill="#fff" fill-rule="evenodd"/>
+    <path d="M84.49,93.24l24.09,24.09c-7.55-2.61-15.67-4.04-24.09-4.04s-16.58,1.43-24.14,4.04l24.14-24.09Z" fill="#fec710" fill-rule="evenodd"/>
+  </symbol>
+</svg>
+
+<header class="top">
+  <div class="topbar">
+    <div class="wrap">
+      <span id="logo"></span>
+      <div class="mwrap" id="sisWrap"></div>
+      <div class="grow"></div>
+      <span class="pill-ag" id="pillAg" hidden></span>
+      <span id="devBtns" class="row" style="gap:6px" hidden></span>
+      <button type="button" class="ibtn" id="btnAtualizar" data-a="atualizar" aria-label="Atualizar" title="Atualizar"><i class="fa-solid fa-rotate-right"></i></button>
+      <button type="button" class="ibtn lua" data-a="tema" aria-label="Tema escuro" title="Tema escuro"><i class="fa-solid fa-moon"></i></button>
+      <div class="mwrap" id="userWrap"></div>
+    </div>
+  </div>
+  <div class="tabsbar" id="tabsbar" hidden><div class="wrap"><nav class="nav" id="nav" role="tablist"></nav></div></div>
+  <div class="vcbar" id="vcbar" hidden></div>
+</header>
+
+<main><div class="wrap" id="main"></div></main>
+<footer id="rodape"></footer>
+
+<div id="painelRaiz"></div>
+<div id="popRaiz"></div>
+<div id="toastRaiz"></div>
+
+
+<script>
+/* ===== MODO DE TESTE: planilha simulada no navegador (não vai para o Apps Script) ===== */
+(function () {
+  const CHAVE = 'comite-demo-v1';
+  const PESSOAS = [
+    ['italo@credisis.com.br', 'Italo (dev)'],
+    ['ana@credisis.com.br', 'Ana · atendente 002'],
+    ['bia@credisis.com.br', 'Bia · atendente 003'],
+    ['carlos@credisis.com.br', 'Carlos · analista'],
+    ['davi@credisis.com.br', 'Davi · gerente 002'],
+    ['eva@credisis.com.br', 'Eva · diretoria'],
+    ['fabio@credisis.com.br', 'Fábio · admin 002']
+  ];
+  let salvo = null;
+  try { salvo = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) {}
+  const estado = { email: '', props: salvo ? salvo.props : {}, abas: {} };
+
+  function sheet(d) {
+    const lastRow = () => { let r = d.length; while (r && d[r - 1].every(v => v === '' || v == null)) r--; return r; };
+    const lastCol = () => d.reduce((m, l) => Math.max(m, l.reduce((mm, v, i) => (v === '' || v == null ? mm : i + 1), 0)), 0);
+    const range = (r, c, nr, nc) => { const rg = {
+      getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => { const v = (d[r - 1 + i] || [])[c - 1 + j]; return v == null ? '' : v; })),
+      setValues: v => { v.forEach((l, i) => { d[r - 1 + i] = d[r - 1 + i] || []; l.forEach((x, j) => { d[r - 1 + i][c - 1 + j] = x == null ? '' : (typeof x === 'string' && x.charAt(0) === "'" ? x.slice(1) : x); }); }); return rg; },
+      clearContent: () => { for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) if (d[r - 1 + i]) d[r - 1 + i][c - 1 + j] = ''; return rg; },
+      setFontWeight: () => rg, setNumberFormat: () => rg, setDataValidation: () => rg }; return rg; };
+    return { d: d, getLastRow: lastRow, getLastColumn: lastCol,
+      getRange: (r, c, nr, nc) => typeof r === 'string' ? range(1, 1, 0, 0) : range(r, c, nr || 1, nc || 1),
+      getDataRange: () => range(1, 1, lastRow(), lastCol()), deleteRow: r => { d.splice(r - 1, 1); }, setFrozenRows() {} };
+  }
+  if (salvo) Object.keys(salvo.abas).forEach(n => { estado.abas[n] = sheet(salvo.abas[n]); });
+  const ss = { getSheetByName: n => estado.abas[n] || null, insertSheet: n => (estado.abas[n] = sheet([])),
+    getUrl: () => 'https:' + '\/\/docs.google.com/spreadsheets', getName: () => 'Planilha de teste' };
+  const dv = () => { const o = {}; ['requireValueInList', 'requireValueInRange', 'setAllowInvalid'].forEach(k => { o[k] = () => o; }); o.build = () => ({}); return o; };
+  const fmt = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Porto_Velho', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  const M = {
+    SpreadsheetApp: { getActive: () => ss, newDataValidation: dv },
+    Session: { getActiveUser: () => ({ getEmail: () => estado.email }), getEffectiveUser: () => ({ getEmail: () => estado.email }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in estado.props ? estado.props[k] : null),
+      setProperty: (k, v) => { estado.props[k] = String(v); }, deleteProperty: k => { delete estado.props[k]; } }) },
+    LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
+    Utilities: { formatDate: d => fmt.format(d).replace(',', '') },
+    HtmlService: { createHtmlOutput: () => ({ setFaviconUrl() {} }), XFrameOptionsMode: {} },
+    ScriptApp: { getScriptId: () => 'TESTE' },
+    Logger: { log: m => console.log(m) }
+  };
+  const S = (new Function(Object.keys(M).join(','), "/* Comitê de Crédito CrediBrás\n * Operações de crédito do cooperado:\n *   Atendente (mesa de negócios + checklist) > Análise > Gerente (IAP e voto) > Diretoria > Liberação (atendente)\n *\n * Histórico\n *   1  Primeira versão: operações de crédito com checklist da solicitação, análise com checklist\n *      (capacidade de pagamento etc.), IAP e voto do gerente, decisão da diretoria e liberação pela agência;\n *      pessoas e tipos de usuário, Trocar de acesso, Ver como, links e atalhos do dev.\n */\nconst VERSAO = 1;\nconst VERSAO_DATA = '07/11/2026 15:39';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)\n\nconst NOME_SISTEMA = 'Comitê de Crédito';\nconst FUSO = 'America/Porto_Velho';\nconst AGENCIAS = ['Matriz', '001', '002', '003', '004'];\n\n// ---------- ícone da aba do navegador (arquivo no Drive compartilhado como \"Qualquer pessoa com o link\") ----------\nconst FAVICON_URL = 'https://drive.google.com/file/d/1n77pd6-pobbzkxi6LUGdvX74AiuKuWPQ/view?usp=sharing';\n\n// ---------- caminho da operação ----------\nconst ST = {\n  RASCUNHO: 'Rascunho',          // atendente preenchendo\n  ANALISE: 'Em análise',         // analista\n  PENDENTE: 'Pendente',          // análise (ou gerente) devolveu ao atendente para corrigir\n  GERENTE: 'Com o gerente',      // gerente inclui o IAP e vota\n  DIRETORIA: 'Na diretoria',     // diretoria aprova\n  APROVADA: 'Aprovada',          // atendente libera\n  LIBERADA: 'Liberada',          // fim\n  REPROVADA: 'Reprovada',        // fim\n  CANCELADA: 'Cancelada'         // dá para reativar\n};\nconst STATUS = Object.keys(ST).map(k => ST[k]);\nconst PREPARO = [ST.RASCUNHO, ST.PENDENTE];\nconst CANCELAVEIS = [ST.RASCUNHO, ST.PENDENTE, ST.ANALISE, ST.GERENTE, ST.DIRETORIA];\n\n// ---------- listas da tela ----------\nconst MODALIDADES = ['Crédito pessoal', 'Capital de giro', 'Financiamento de veículo', 'Crédito rural',\n  'Consignado', 'Cheque especial', 'Antecipação de recebíveis', 'Investimento', 'Outra'];\nconst TIPOS_GARANTIA = ['Alienação fiduciária de veículo', 'Alienação fiduciária de imóvel', 'Hipoteca', 'Penhor',\n  'Aplicação financeira', 'Cessão de recebíveis', 'Outra'];\nconst CHECK_SOLICITACAO = [\n  { id: 'spc', nome: 'Consulta SPC/Serasa', obrig: true },\n  { id: 'scr', nome: 'Consulta SCR (Banco Central)', obrig: true },\n  { id: 'cadastro', nome: 'Cadastro do cooperado atualizado', obrig: true },\n  { id: 'renda', nome: 'Comprovante de renda ou faturamento', obrig: true },\n  { id: 'documentos', nome: 'Documentos pessoais conferidos', obrig: true },\n  { id: 'proposta', nome: 'Proposta assinada pelo cooperado', obrig: false }\n];\nconst CHECK_ANALISE = [\n  { id: 'capacidade', nome: 'Capacidade de pagamento' },\n  { id: 'restricoes', nome: 'Restrições cadastrais (SPC/Serasa)' },\n  { id: 'endividamento', nome: 'Endividamento (SCR)' },\n  { id: 'garantias', nome: 'Garantias suficientes' },\n  { id: 'documentacao', nome: 'Documentação completa' }\n];\nconst RECOMENDACOES = ['Favorável', 'Favorável com ressalvas', 'Desfavorável'];\nconst RISCOS = ['AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];\nconst VOTOS = ['Favorável', 'Desfavorável'];\n\n// ---------- planilha ----------\nconst ABAS = {\n  Operacoes: ['n', 'agencia', 'status', 'criado', 'atualizado', 'email', 'solicitante', 'cooperado', 'documento', 'conta',\n    'numero_operacao', 'modalidade', 'valor', 'prazo', 'dados', 'checklist', 'analise', 'gerente', 'diretoria',\n    'liberacao', 'historico', 'excluida', 'rev'],\n  Usuarios: ['email', 'nome', 'agencia', 'perfil', 'ativo', 'acessos'],\n  Perfis: ['perfil', 'descricao', 'gerencia', 'tecnico', 'solicita', 'analisa', 'vota', 'aprova', 'libera'],\n  Atalhos: ['nome', 'link', 'descricao']\n};\nconst JSONS = { dados: {}, checklist: {}, analise: {}, gerente: {}, diretoria: {}, liberacao: {}, historico: [] };\n\n// ---------- tipos de usuário ----------\nconst PERMS = ['solicita', 'analisa', 'vota', 'aprova', 'libera'];\nconst PERM_INFO = {\n  solicita: 'Cadastra a operação e envia para análise',\n  analisa: 'Faz a análise da operação',\n  vota: 'Inclui o IAP e vota como gerente',\n  aprova: 'Aprova ou reprova (diretoria)',\n  libera: 'Registra a liberação da operação aprovada'\n};\nconst FIXOS = ['usuario', 'admin', 'dev'];\nconst PERFIS_INICIAIS = [\n  ['usuario', 'Atendente: cadastra a operação, envia para análise e faz a liberação', 'não', 'não', 'sim', 'não', 'não', 'não', 'sim'],\n  ['admin', 'Atendente que também gerencia pessoas, tipos e links', 'sim', 'não', 'sim', 'não', 'não', 'não', 'sim'],\n  ['dev', 'Admin com acesso técnico (planilha e código) e todas as etapas', 'sim', 'sim', 'sim', 'sim', 'sim', 'sim', 'sim'],\n  ['analista', 'Analisa as operações e marca o checklist da análise', 'não', 'não', 'não', 'sim', 'não', 'não', 'não'],\n  ['gerente', 'Inclui o IAP, vota e envia para a diretoria', 'não', 'não', 'não', 'não', 'sim', 'não', 'não'],\n  ['diretoria', 'Aprova, reprova ou devolve as operações', 'não', 'não', 'não', 'não', 'não', 'sim', 'não']\n];\n\n// =====================================================================================\n// Abrir a tela e ícone\n// =====================================================================================\nfunction doGet() {\n  const saida = HtmlService.createHtmlOutputFromFile('app')\n    .setTitle(NOME_SISTEMA + ' CrediBrás')\n    .addMetaTag('viewport', 'width=device-width, initial-scale=1')\n    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);\n  aplicarIcone_(saida);\n  return saida;\n}\n\n// aceita link do Drive (\".../file/d/ID/view\" ou \"...?id=ID\") e devolve o endereço direto da imagem\nfunction linkImagem_(link) {\n  const t = String(link || '').trim();\n  if (!t) return '';\n  const m = t.match(/\\/d\\/([\\w-]{20,})/) || t.match(/[?&]id=([\\w-]{20,})/);\n  if (m && /google\\.com/.test(t)) return 'https://lh3.googleusercontent.com/d/' + m[1];\n  return /^https:\\/\\//.test(t) ? t : '';\n}\n// o Google só aceita ícone com final de imagem: tenta com \"#.png\" e depois o endereço puro\nfunction aplicarIcone_(h) {\n  const ico = linkImagem_(FAVICON_URL);\n  if (!ico) return 'sem ícone configurado';\n  const tentativas = /\\.(png|ico|gif|jpe?g)(\\?|#|$)/i.test(ico) ? [ico] : [ico + '#.png', ico];\n  for (const u of tentativas) {\n    try { h.setFaviconUrl(u); return 'ok: ' + u; } catch (e) { /* tenta o próximo */ }\n  }\n  return 'o Google recusou o endereço: ' + ico;\n}\n// rode no editor para conferir no Registro de execução\nfunction testarIcone() {\n  Logger.log('Resultado: ' + aplicarIcone_(HtmlService.createHtmlOutput('teste')));\n}\n\n// =====================================================================================\n// Utilidades\n// =====================================================================================\nfunction ss_() { return SpreadsheetApp.getActive(); }\nfunction agora_() { return Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'); }\nfunction norm_(e) { return String(e == null ? '' : e).toLowerCase().replace(/\\s+/g, ''); }\nfunction sim_(v) { return /^(sim|s|true|1|x|yes)$/i.test(String(v == null ? '' : v).trim()); }\nfunction nao_(v) { return /^(n|não|nao|false|0|no)$/i.test(String(v == null ? '' : v).trim()); }\nfunction seguro_(v) { return typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v; }   // nunca vira fórmula\nfunction ag_(v) {\n  const t = String(v == null ? '' : v).trim();\n  if (!t || /^matriz$/i.test(t)) return 'Matriz';\n  return /^\\d{1,3}$/.test(t) ? ('000' + t).slice(-3) : t;\n}\nfunction txt_(v, max, nome) {\n  const t = String(v == null ? '' : v).trim();\n  if (t.length > max) throw new Error(nome + ': máximo de ' + max + ' caracteres.');\n  return t;\n}\nfunction num_(v) {                                     // aceita 1234.56, \"1.234,56\" e \"R$ 1.234,56\"\n  if (typeof v === 'number') return isFinite(v) ? Math.round(v * 100) / 100 : 0;\n  const t = String(v == null ? '' : v).replace(/[^\\d,.-]/g, '');\n  const n = +(t.indexOf(',') >= 0 ? t.replace(/\\./g, '').replace(',', '.') : t);\n  return isFinite(n) ? Math.round(n * 100) / 100 : 0;\n}\nfunction https_(v) {\n  const t = String(v == null ? '' : v).trim();\n  return /^https:\\/\\/[^\\s\"'<>]+$/i.test(t) ? t : '';\n}\nfunction digitos_(v) { return String(v == null ? '' : v).replace(/\\D/g, ''); }\nfunction cpfOk_(c) {\n  c = digitos_(c);\n  if (c.length !== 11 || /^(\\d)\\1+$/.test(c)) return false;\n  for (let t = 9; t < 11; t++) {\n    let s = 0;\n    for (let i = 0; i < t; i++) s += +c[i] * (t + 1 - i);\n    if (((s * 10) % 11) % 10 !== +c[t]) return false;\n  }\n  return true;\n}\nfunction cnpjOk_(c) {\n  c = digitos_(c);\n  if (c.length !== 14 || /^(\\d)\\1+$/.test(c)) return false;\n  const calc = len => {\n    let s = 0, p = len - 7;\n    for (let i = 0; i < len; i++) { s += +c[i] * p--; if (p < 2) p = 9; }\n    const r = s % 11;\n    return r < 2 ? 0 : 11 - r;\n  };\n  return calc(12) === +c[12] && calc(13) === +c[13];\n}\nfunction docOk_(v) { const d = digitos_(v); return d.length === 11 ? cpfOk_(d) : d.length === 14 ? cnpjOk_(d) : false; }\nfunction doc_(v, nome) {                               // CPF ou CNPJ: guarda só os números\n  const d = digitos_(v);\n  if (!d) return '';\n  if (!docOk_(d)) throw new Error(nome + ': CPF ou CNPJ inválido. Confira os números.');\n  return d;\n}\nfunction dataOk_(v) {\n  const m = String(v || '').match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);\n  if (!m) return false;\n  const d = new Date(+m[3], +m[2] - 1, +m[1]);\n  return d.getFullYear() === +m[3] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[1];\n}\nfunction nomePerfil_(p) {\n  const n = { usuario: 'Usuário', admin: 'Admin', dev: 'Dev' }[p];\n  return n || (String(p).charAt(0).toUpperCase() + String(p).slice(1)).replace(/_/g, ' ');\n}\nfunction labelAcesso_(a) {\n  return (a.agencia === 'Matriz' ? 'Matriz' : 'Agência ' + a.agencia) + ' · ' + nomePerfil_(a.perfil);\n}\nconst chave_ = a => a.agencia + '|' + a.perfil;\nconst clone_ = o => JSON.parse(JSON.stringify(o));\n\n// =====================================================================================\n// Planilha: tudo pelo NOME da coluna\n// =====================================================================================\nfunction aba_(nome) {\n  let s = ss_().getSheetByName(nome);\n  if (s) return s;\n  s = ss_().insertSheet(nome);\n  s.getRange(1, 1, 1, ABAS[nome].length).setValues([ABAS[nome]]).setFontWeight('bold');\n  s.setFrozenRows(1);\n  s.getRange('A:Z').setNumberFormat('@');              // texto: \"001\" continua \"001\", datas não viram data\n  return s;\n}\nfunction cab_(s) {\n  const c = s.getLastColumn();\n  return c ? s.getRange(1, 1, 1, c).getValues()[0].map(x => String(x).trim()) : [];\n}\nfunction garanteCab_(nome) {                          // acrescenta colunas que faltam, nunca apaga\n  const s = aba_(nome), h = cab_(s);\n  const falta = ABAS[nome].filter(k => h.indexOf(k) < 0);\n  if (falta.length) s.getRange(1, h.length + 1, 1, falta.length).setValues([falta]).setFontWeight('bold');\n  return s;\n}\nfunction ler_(nome) {\n  const s = aba_(nome);\n  if (s.getLastRow() < 1) return [];\n  const v = s.getDataRange().getValues(), h = (v.shift() || []).map(x => String(x).trim());\n  const t = x => x instanceof Date ? Utilities.formatDate(x, FUSO, 'dd/MM/yyyy HH:mm') : x;\n  const out = [];\n  v.forEach((r, i) => {\n    if (r.join('') === '') return;\n    const o = {};\n    h.forEach((k, j) => { if (k) o[k] = t(r[j]); });\n    o._linha = i + 2;\n    out.push(o);\n  });\n  return out;\n}\nfunction gravar_(s, r, o) {                            // grava pelo nome da coluna; o que não veio fica como estava\n  const h = cab_(s);\n  const atual = r <= s.getLastRow() ? s.getRange(r, 1, 1, h.length).getValues()[0] : [];\n  s.getRange(r, 1, 1, h.length).setValues([h.map((k, i) => {\n    if (!(k in o)) return atual[i] == null ? '' : atual[i];\n    const v = k in JSONS ? JSON.stringify(o[k]) : (o[k] == null ? '' : o[k]);\n    return seguro_(v);\n  })]);\n}\nfunction comTrava_(fn) {                               // uma gravação por vez\n  const lock = LockService.getScriptLock();\n  if (!lock.tryLock(15000)) throw new Error('Outra pessoa está salvando agora. Tente de novo em alguns segundos.');\n  try { return fn(); } finally { lock.releaseLock(); }\n}\nfunction props_() { return PropertiesService.getScriptProperties(); }\n\n// =====================================================================================\n// Tipos de usuário e pessoas\n// =====================================================================================\nfunction perfis_() {\n  const out = [];\n  ler_('Perfis').forEach(p => {\n    const nome = String(p.perfil || '').trim().toLowerCase();\n    if (!nome || out.some(x => x.perfil === nome)) return;\n    const o = { perfil: nome, nome: nomePerfil_(nome), descricao: String(p.descricao || ''), fixo: FIXOS.indexOf(nome) >= 0,\n      gerencia: sim_(p.gerencia), tecnico: sim_(p.tecnico) };\n    PERMS.forEach(k => { o[k] = sim_(p[k]); });\n    if (nome === 'admin') o.gerencia = true;\n    if (nome === 'dev') { o.gerencia = true; o.tecnico = true; PERMS.forEach(k => { o[k] = true; }); }\n    if (nome === 'usuario') { o.gerencia = false; o.tecnico = false; }\n    out.push(o);\n  });\n  return out;\n}\nfunction mapaPerfis_(lista) { const m = {}; (lista || perfis_()).forEach(p => { m[p.perfil] = p; }); return m; }\n\nfunction extrasDe_(x) {                                // \"Matriz:admin; 003:usuario\" → lista\n  return String(x.acessos || '').split(/[;,\\n]/).map(t => t.trim()).filter(Boolean).map(t => {\n    const i = t.indexOf(':');\n    return i < 0 ? null : { agencia: ag_(t.slice(0, i)), perfil: t.slice(i + 1).trim().toLowerCase() };\n  }).filter(Boolean);\n}\nfunction acessosDe_(x) {\n  const lista = [{ agencia: ag_(x.agencia), perfil: String(x.perfil || '').trim().toLowerCase(), principal: true }]\n    .concat(extrasDe_(x));\n  const vistos = {};\n  return lista.filter(a => (vistos[chave_(a)] ? false : (vistos[chave_(a)] = true)));\n}\nfunction formataExtras_(l) { return l.map(a => a.agencia + ':' + a.perfil).join('; '); }\n\nfunction monta_(a, pm) {\n  const p = pm[a.perfil];\n  const perm = {};\n  PERMS.forEach(k => { perm[k] = !!p[k]; });\n  return { agencia: a.agencia, perfil: a.perfil, perm: perm, gerencia: !!p.gerencia, tecnico: !!p.tecnico,\n    ve: a.agencia === 'Matriz' ? AGENCIAS.slice() : [a.agencia] };\n}\nfunction podeVerComo_(real, v, pm) {\n  return !!(real.gerencia && v && pm[v.perfil] && AGENCIAS.indexOf(v.agencia) >= 0 && real.ve.indexOf(v.agencia) >= 0 &&\n    (!pm[v.perfil].tecnico || real.tecnico));\n}\n\n// a pessoa conectada, com o acesso efetivo (o escolhido em Trocar de acesso, ou o do Ver como)\nfunction eu_() {\n  const email = norm_(Session.getActiveUser().getEmail());\n  if (!email) throw new Error('Não deu para identificar seu e-mail. Entre com a conta Google da empresa.');\n  const pm = mapaPerfis_();\n  const x = ler_('Usuarios').find(p => norm_(p.email) === email);\n  if (!x || nao_(x.ativo)) throw new Error('Acesso não liberado: o e-mail ' + email + ' não está cadastrado ou está desativado neste sistema. Peça a um administrador da sua agência para liberar.');\n  const acessos = acessosDe_(x).filter(a => AGENCIAS.indexOf(a.agencia) >= 0 && pm[a.perfil]);\n  if (!acessos.length) throw new Error('Acesso não liberado: a agência ou o tipo de usuário de ' + email + ' está errado na aba Usuarios. Peça a um administrador para corrigir.');\n  const p = props_();\n  const escolhido = acessos.find(a => chave_(a) === p.getProperty('acesso:' + email)) || acessos[0];\n  const real = monta_(escolhido, pm);\n  let ef = real, verComo = null;\n  const vc = p.getProperty('vercomo:' + email);\n  if (vc) {\n    try {\n      const v = JSON.parse(vc);\n      if (podeVerComo_(real, v, pm)) { verComo = { agencia: v.agencia, perfil: v.perfil }; ef = monta_(verComo, pm); }\n    } catch (e) { /* ignora */ }\n  }\n  return { email: email, nome: String(x.nome || email), agencia: ef.agencia, perfil: ef.perfil, perm: ef.perm,\n    admin: ef.gerencia, tecnico: ef.tecnico, ve: ef.ve, acessos: acessos, acesso: escolhido,\n    podeVerComo: real.gerencia, verComo: verComo, real: real, pm: pm };\n}\nfunction euGrava_() {\n  const u = eu_();\n  if (u.verComo) throw new Error('Você está no modo Ver como (' + labelAcesso_(u.verComo) + '). Saia dele para salvar.');\n  return u;\n}\n\n// =====================================================================================\n// Regras das operações (sempre conferidas aqui no servidor)\n// =====================================================================================\nconst atende_ = (u, o) => u.ve.indexOf(o.agencia) >= 0;\nfunction ve_(u, o) {\n  if (o.excluida) return false;\n  if (!u.verComo && o.email === u.email) return true;  // quem cadastrou sempre vê a sua\n  if (!atende_(u, o)) return false;\n  if (o.status === ST.RASCUNHO) return u.perm.solicita || u.admin;\n  return true;\n}\nconst podeEditar_ = (u, o) => PREPARO.indexOf(o.status) >= 0 && u.perm.solicita && atende_(u, o);\nconst podeAnalisar_ = (u, o) => o.status === ST.ANALISE && u.perm.analisa && atende_(u, o);\nconst podeVotar_ = (u, o) => o.status === ST.GERENTE && u.perm.vota && atende_(u, o);\nconst podeDecidir_ = (u, o) => o.status === ST.DIRETORIA && u.perm.aprova && atende_(u, o);\nconst podeLiberar_ = (u, o) => o.status === ST.APROVADA && u.perm.libera && atende_(u, o);\nconst podeCancelar_ = (u, o) => CANCELAVEIS.indexOf(o.status) >= 0 && (u.perm.solicita || u.admin) && atende_(u, o);\nconst podeReativar_ = (u, o) => o.status === ST.CANCELADA && (u.perm.solicita || u.admin) && atende_(u, o);\nconst nuncaEnviada_ = o => !o.historico.some(h => h.etapa >= 1);\nconst podeExcluir_ = (u, o) => o.status === ST.RASCUNHO && nuncaEnviada_(o) && (u.perm.solicita || u.admin) && atende_(u, o);\n\nfunction opObj_(x) {                                   // linha da planilha → operação\n  const o = Object.assign({}, x);\n  for (const k in JSONS) {\n    try { o[k] = o[k] ? JSON.parse(o[k]) : clone_(JSONS[k]); } catch (e) { o[k] = clone_(JSONS[k]); }\n  }\n  o.n = +o.n; o.rev = +o.rev || 0; o.valor = num_(o.valor); o.prazo = parseInt(o.prazo, 10) || 0;\n  o.email = norm_(o.email);\n  o.agencia = ag_(o.agencia);\n  o.documento = digitos_(o.documento);\n  o.excluida = sim_(o.excluida);\n  if (STATUS.indexOf(o.status) < 0) o.status = ST.RASCUNHO;\n  return o;\n}\nfunction hist_(o, u, acao, obs, etapa) {\n  o.historico.push({ em: agora_(), por: u.nome, email: u.email, acao: acao, obs: obs || '', etapa: etapa });\n}\n\n// abre a operação dentro da trava, confere se ninguém mexeu, aplica fn e grava\nfunction mexer_(n, rev, fn) {\n  return comTrava_(() => {\n    const s = aba_('Operacoes');\n    const x = ler_('Operacoes').find(r => +r.n === +n);\n    if (!x) throw new Error('Operação não encontrada. Clique em Atualizar.');\n    const o = opObj_(x);\n    if (rev != null && rev !== '' && +rev !== o.rev) throw new Error('Esta operação foi alterada por outra pessoa enquanto você mexia nela. Clique em Atualizar e confira.');\n    fn(o);\n    o.atualizado = agora_(); o.rev++;\n    delete o._linha;\n    gravar_(s, x._linha, o);\n    return o.n;\n  });\n}\nfunction resposta_(n) { const r = getData(); r.ultimo = n || null; return r; }\n\n// limpa e confere o que veio do formulário do atendente\nfunction limpaOperacao_(d, u) {\n  const dd = d.dados && typeof d.dados === 'object' ? d.dados : {};\n  const ck = d.checklist && typeof d.checklist === 'object' ? d.checklist : {};\n  const simNao = v => v === 'sim' || v === 'não' ? v : '';\n  const avalistas = (Array.isArray(dd.avalistas) ? dd.avalistas : []).slice(0, 5).map((a, i) => ({\n    nome: txt_(a && a.nome, 150, 'Nome do avalista ' + (i + 1)),\n    documento: doc_(a && a.documento, 'Avalista ' + (i + 1))\n  })).filter(a => a.nome || a.documento);\n  const garantias = (Array.isArray(dd.garantias) ? dd.garantias : []).slice(0, 10).map((g, i) => ({\n    tipo: TIPOS_GARANTIA.indexOf(g && g.tipo) >= 0 ? g.tipo : '',\n    descricao: txt_(g && g.descricao, 500, 'Descrição da garantia ' + (i + 1)),\n    valor: num_(g && g.valor)\n  })).filter(g => g.tipo || g.descricao || g.valor);\n  const checklist = {};\n  CHECK_SOLICITACAO.forEach(c => { checklist[c.id] = ck[c.id] === true; });\n  const x = {\n    agencia: ag_(d.agencia || u.agencia),\n    cooperado: txt_(d.cooperado, 150, 'Nome do cooperado'),\n    documento: doc_(d.documento, 'CPF/CNPJ do cooperado'),\n    conta: txt_(d.conta, 30, 'Conta corrente'),\n    numero_operacao: txt_(d.numero_operacao, 40, 'Número da operação'),\n    modalidade: MODALIDADES.indexOf(d.modalidade) >= 0 ? d.modalidade : '',\n    valor: num_(d.valor),\n    prazo: Math.max(0, Math.min(600, parseInt(digitos_(d.prazo), 10) || 0)),\n    checklist: checklist,\n    dados: {\n      finalidade: txt_(dd.finalidade, 1000, 'Finalidade'),\n      observacao: txt_(dd.observacao, 2000, 'Observações'),\n      tem_avalista: simNao(dd.tem_avalista), avalistas: avalistas,\n      tem_garantia: simNao(dd.tem_garantia), garantias: garantias\n    }\n  };\n  if (x.valor < 0) throw new Error('O valor não pode ser negativo.');\n  if (!x.cooperado) throw new Error('Preencha pelo menos o nome do cooperado para salvar.');\n  if (u.ve.indexOf(x.agencia) < 0) throw new Error('Você não pode cadastrar operação para a agência ' + x.agencia + '.');\n  return x;\n}\n// o que falta para enviar para análise (a tela confere igual, aqui é a palavra final)\nfunction faltaEnvio_(o) {\n  const f = [];\n  if (!o.numero_operacao) f.push('número da operação na mesa de negócios');\n  if (!o.cooperado) f.push('nome do cooperado');\n  if (!o.documento) f.push('CPF/CNPJ do cooperado');\n  if (!o.modalidade) f.push('modalidade');\n  if (!(o.valor > 0)) f.push('valor');\n  if (!(o.prazo > 0)) f.push('prazo');\n  if (!o.dados.finalidade) f.push('finalidade');\n  CHECK_SOLICITACAO.forEach(c => { if (c.obrig && !o.checklist[c.id]) f.push('checklist: ' + c.nome); });\n  if (!o.dados.tem_avalista) f.push('se possui avalista');\n  else if (o.dados.tem_avalista === 'sim' && !o.dados.avalistas.some(a => a.nome && a.documento)) f.push('nome e CPF do avalista');\n  if (!o.dados.tem_garantia) f.push('se possui garantia');\n  else if (o.dados.tem_garantia === 'sim' && !o.dados.garantias.some(g => g.tipo && g.descricao)) f.push('tipo e descrição da garantia');\n  return f;\n}\n\n// =====================================================================================\n// Funções chamadas pela tela: operações\n// =====================================================================================\n\n// cria (sem n) ou corrige (com n). Com d.enviar = true, já manda para a análise.\nfunction salvarOperacao(d) {\n  const u = euGrava_();\n  if (!u.perm.solicita) throw new Error('Seu tipo de usuário não cadastra operações.');\n  d = d || {};\n  const x = limpaOperacao_(d, u);\n  if (d.enviar) {\n    const falta = faltaEnvio_(x);\n    if (falta.length) throw new Error('Para enviar para análise, falta: ' + falta.join(', ') + '.');\n  }\n  let n;\n  if (d.n) {\n    n = mexer_(d.n, d.rev, o => {\n      if (!podeEditar_(u, o)) throw new Error(PREPARO.indexOf(o.status) < 0 ? 'Esta operação já foi enviada (está \"' + o.status + '\") e não pode mais ser alterada.' : 'Você não pode alterar operações desta agência.');\n      const era = o.status;\n      Object.assign(o, x);\n      hist_(o, u, 'corrigiu', '', 0);\n      if (d.enviar) { o.status = ST.ANALISE; hist_(o, u, era === ST.PENDENTE ? 'reenviou para análise' : 'enviou para análise', '', 1); }\n    });\n  } else {\n    n = comTrava_(() => {\n      const s = aba_('Operacoes');\n      const ns = ler_('Operacoes').map(r => +r.n || 0);\n      const o = Object.assign({ n: Math.max.apply(null, [0].concat(ns)) + 1, status: ST.RASCUNHO, criado: agora_(),\n        atualizado: agora_(), email: u.email, solicitante: u.nome, analise: {}, gerente: {}, diretoria: {},\n        liberacao: {}, historico: [], excluida: '', rev: 1 }, x);\n      hist_(o, u, 'criou', '', 0);\n      if (d.enviar) { o.status = ST.ANALISE; hist_(o, u, 'enviou para análise', '', 1); }\n      gravar_(s, s.getLastRow() + 1, o);\n      return o.n;\n    });\n  }\n  return resposta_(n);\n}\n\n// manda para a análise uma operação já salva\nfunction enviarAnalise(n, rev) {\n  const u = euGrava_();\n  mexer_(n, rev, o => {\n    if (!podeEditar_(u, o)) throw new Error(PREPARO.indexOf(o.status) < 0 ? 'Esta operação já foi enviada.' : 'Você não pode enviar operações desta agência.');\n    const falta = faltaEnvio_(o);\n    if (falta.length) throw new Error('Para enviar para análise, falta: ' + falta.join(', ') + '.');\n    const era = o.status;\n    o.status = ST.ANALISE;\n    hist_(o, u, era === ST.PENDENTE ? 'reenviou para análise' : 'enviou para análise', '', 1);\n  });\n  return resposta_(n);\n}\n\n// analista: d = { acao: 'concluir' | 'pendencia', itens: {capacidade: 'ok'|'nok', ...}, risco, recomendacao, parecer }\nfunction analisarOperacao(n, d, rev) {\n  const u = euGrava_();\n  d = d || {};\n  const parecer = txt_(d.parecer, 4000, 'Parecer');\n  mexer_(n, rev, o => {\n    if (!podeAnalisar_(u, o)) throw new Error(o.status !== ST.ANALISE ? 'Esta operação não está aguardando análise (está \"' + o.status + '\").' : 'Você não analisa operações desta agência.');\n    if (d.acao === 'pendencia') {\n      if (!parecer) throw new Error('Escreva o que o atendente precisa corrigir.');\n      o.status = ST.PENDENTE;\n      o.analise = Object.assign({}, o.analise, { pendencia: { texto: parecer, por: u.nome, em: agora_() } });\n      hist_(o, u, 'devolveu ao atendente', parecer, 1);\n      return;\n    }\n    if (d.acao !== 'concluir') throw new Error('Ação inválida.');\n    const itens = {}, sem = [];\n    CHECK_ANALISE.forEach(c => {\n      const v = d.itens && d.itens[c.id];\n      if (v !== 'ok' && v !== 'nok') sem.push(c.nome); else itens[c.id] = v;\n    });\n    if (sem.length) throw new Error('Marque no checklist da análise: ' + sem.join(', ') + '.');\n    if (RECOMENDACOES.indexOf(d.recomendacao) < 0) throw new Error('Escolha a recomendação da análise.');\n    if (!parecer) throw new Error('Escreva o parecer da análise.');\n    o.status = ST.GERENTE;\n    o.analise = { itens: itens, risco: RISCOS.indexOf(d.risco) >= 0 ? d.risco : '', recomendacao: d.recomendacao,\n      parecer: parecer, por: u.nome, email: u.email, em: agora_() };\n    hist_(o, u, 'concluiu a análise', d.recomendacao, 2);\n  });\n  return resposta_(n);\n}\n\n// gerente: d = { acao: 'enviar' | 'devolver', iap, voto, parecer }\nfunction votarGerente(n, d, rev) {\n  const u = euGrava_();\n  d = d || {};\n  const parecer = txt_(d.parecer, 4000, 'Parecer do gerente');\n  mexer_(n, rev, o => {\n    if (!podeVotar_(u, o)) throw new Error(o.status !== ST.GERENTE ? 'Esta operação não está com o gerente (está \"' + o.status + '\").' : 'Você não vota em operações desta agência.');\n    if (d.acao === 'devolver') {\n      if (!parecer) throw new Error('Escreva o motivo para devolver para a análise.');\n      o.status = ST.ANALISE;\n      hist_(o, u, 'devolveu para a análise', parecer, 2);\n      return;\n    }\n    if (d.acao !== 'enviar') throw new Error('Ação inválida.');\n    const iapTxt = String(d.iap == null ? '' : d.iap).trim();\n    if (!iapTxt || !/^-?[\\d.,]+$/.test(iapTxt)) throw new Error('Informe o IAP (só números).');\n    if (VOTOS.indexOf(d.voto) < 0) throw new Error('Escolha o seu voto: Favorável ou Desfavorável.');\n    if (d.voto === 'Desfavorável' && !parecer) throw new Error('Para votar desfavorável, escreva o motivo no parecer.');\n    o.status = ST.DIRETORIA;\n    o.gerente = { iap: num_(iapTxt), voto: d.voto, parecer: parecer, por: u.nome, email: u.email, em: agora_() };\n    hist_(o, u, 'votou ' + d.voto.toLowerCase() + ' e enviou à diretoria', parecer, 3);\n  });\n  return resposta_(n);\n}\n\n// diretoria: acao = 'aprovar' | 'reprovar' | 'devolver' (texto obrigatório para reprovar e devolver)\nfunction decidirDiretoria(n, acao, texto, rev) {\n  const u = euGrava_();\n  texto = txt_(texto, 4000, 'Parecer da diretoria');\n  const st = { aprovar: ST.APROVADA, reprovar: ST.REPROVADA, devolver: ST.GERENTE }[acao];\n  if (!st) throw new Error('Ação inválida.');\n  if (acao !== 'aprovar' && !texto) throw new Error('Escreva o motivo para ' + (acao === 'reprovar' ? 'reprovar.' : 'devolver ao gerente.'));\n  mexer_(n, rev, o => {\n    if (!podeDecidir_(u, o)) throw new Error(o.status !== ST.DIRETORIA ? 'Esta operação não está aguardando a diretoria (está \"' + o.status + '\").' : 'Você não aprova operações desta agência.');\n    if (acao === 'devolver') {\n      hist_(o, u, 'devolveu ao gerente', texto, 3);\n    } else {\n      o.diretoria = { decisao: st, texto: texto, por: u.nome, email: u.email, em: agora_() };\n      hist_(o, u, acao === 'aprovar' ? 'aprovou' : 'reprovou', texto, acao === 'aprovar' ? 4 : 3);\n    }\n    o.status = st;\n  });\n  return resposta_(n);\n}\n\n// atendente da agência: d = { data: 'dd/mm/aaaa', contrato, obs }\nfunction liberarOperacao(n, d, rev) {\n  const u = euGrava_();\n  d = d || {};\n  const data = String(d.data || '').trim();\n  if (!dataOk_(data)) throw new Error('Informe a data da liberação no formato dd/mm/aaaa.');\n  const contrato = txt_(d.contrato, 40, 'Número do contrato');\n  const obs = txt_(d.obs, 1000, 'Observação');\n  mexer_(n, rev, o => {\n    if (!podeLiberar_(u, o)) throw new Error(o.status !== ST.APROVADA ? 'Só operação aprovada pode ser liberada (esta está \"' + o.status + '\").' : 'Você não libera operações desta agência.');\n    o.status = ST.LIBERADA;\n    o.liberacao = { data: data, contrato: contrato, obs: obs, por: u.nome, email: u.email, em: agora_() };\n    hist_(o, u, 'liberou', obs, 5);\n  });\n  return resposta_(n);\n}\n\n// cancelar = true desiste; false reativa (volta a Rascunho)\nfunction cancelarOperacao(n, cancelar, motivo, rev) {\n  const u = euGrava_();\n  motivo = txt_(motivo, 500, 'Motivo');\n  mexer_(n, rev, o => {\n    if (cancelar) {\n      if (!podeCancelar_(u, o)) throw new Error(o.status === ST.CANCELADA ? 'Já está cancelada.' : 'Esta operação não pode ser cancelada (está \"' + o.status + '\").');\n      if (!motivo) throw new Error('Escreva o motivo do cancelamento.');\n      o.status = ST.CANCELADA;\n      hist_(o, u, 'cancelou', motivo, 0);\n    } else {\n      if (!podeReativar_(u, o)) throw new Error('Só operação cancelada pode ser reativada.');\n      o.status = ST.RASCUNHO;\n      hist_(o, u, 'reativou', motivo, 0);\n    }\n  });\n  return resposta_(n);\n}\n\n// rascunho que nunca foi enviado: some da lista (dá para desfazer)\nfunction excluirOperacao(n, rev) {\n  const u = euGrava_();\n  mexer_(n, rev, o => {\n    if (!podeExcluir_(u, o)) throw new Error('Só dá para excluir rascunho que nunca foi enviado para análise.');\n    o.excluida = 'sim';\n    hist_(o, u, 'excluiu', '', 0);\n  });\n  return resposta_(n);\n}\nfunction restaurarOperacao(n) {\n  const u = euGrava_();\n  mexer_(n, null, o => {\n    if (!o.excluida || o.status !== ST.RASCUNHO || !(u.perm.solicita || u.admin) || !atende_(u, o)) throw new Error('Esta operação não pode ser restaurada.');\n    o.excluida = '';\n    hist_(o, u, 'restaurou', '', 0);\n  });\n  return resposta_(n);\n}\n\n// =====================================================================================\n// Carga da tela\n// =====================================================================================\nfunction getData() {\n  const u = eu_();\n  const pm = u.pm;\n  const ops = ler_('Operacoes').map(opObj_).filter(o => ve_(u, o)).map(o => {\n    delete o._linha;\n    return Object.assign(o, {\n      meu: o.email === u.email,\n      editar: podeEditar_(u, o), analisar: podeAnalisar_(u, o), votar: podeVotar_(u, o), decidir: podeDecidir_(u, o),\n      liberar: podeLiberar_(u, o), cancelar: podeCancelar_(u, o), reativar: podeReativar_(u, o), excluir: podeExcluir_(u, o)\n    });\n  }).sort((a, b) => b.n - a.n);\n\n  let pessoas = [];\n  if (u.admin) {\n    pessoas = ler_('Usuarios').filter(p => p.email && u.ve.indexOf(ag_(p.agencia)) >= 0).map(p => ({\n      email: norm_(p.email), nome: String(p.nome || ''), agencia: ag_(p.agencia), perfil: String(p.perfil || '').trim().toLowerCase(),\n      ativo: !nao_(p.ativo), acessos: extrasDe_(p), eu: norm_(p.email) === u.email\n    })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));\n  }\n  const atalhos = ler_('Atalhos').map(a => ({ nome: String(a.nome || '').trim(), link: https_(a.link), descricao: String(a.descricao || '').trim() }))\n    .filter(a => a.nome && a.link);\n  const perfis = perfis_();\n  return {\n    sistema: NOME_SISTEMA,\n    versao: { numero: VERSAO, data: VERSAO_DATA },\n    eu: {\n      email: u.email, nome: u.nome, agencia: u.agencia, perfil: u.perfil, perm: u.perm, admin: u.admin, tecnico: u.tecnico,\n      ve: u.ve, matriz: u.agencia === 'Matriz',\n      acesso: { agencia: u.acesso.agencia, perfil: u.acesso.perfil, chave: chave_(u.acesso), label: labelAcesso_(u.acesso) },\n      acessos: u.acessos.map(a => ({ agencia: a.agencia, perfil: a.perfil, chave: chave_(a), label: labelAcesso_(a) })),\n      podeVerComo: u.podeVerComo,\n      verComo: u.verComo ? { agencia: u.verComo.agencia, perfil: u.verComo.perfil, label: labelAcesso_(u.verComo) } : null,\n      verComoOpcoes: u.podeVerComo ? {\n        agencias: u.real.ve,\n        perfis: perfis.filter(p => !p.tecnico || u.real.tecnico).map(p => ({ perfil: p.perfil, nome: p.nome }))\n      } : null,\n      podeDev: u.real.tecnico\n    },\n    agencias: AGENCIAS,\n    perfis: perfis,\n    permInfo: PERM_INFO,\n    listas: { modalidades: MODALIDADES, garantias: TIPOS_GARANTIA, checkSolicitacao: CHECK_SOLICITACAO,\n      checkAnalise: CHECK_ANALISE, recomendacoes: RECOMENDACOES, riscos: RISCOS, votos: VOTOS, status: STATUS },\n    operacoes: ops,\n    pessoas: pessoas,\n    central: u.tecnico ? {\n      planilha: ss_().getUrl(),\n      codigo: 'https://script.google.com/d/' + ScriptApp.getScriptId() + '/edit'\n    } : null,\n    linkLogo: https_(props_().getProperty('link_logo')),\n    atalhos: atalhos\n  };\n}\n\n// =====================================================================================\n// Meu acesso: Trocar de acesso e Ver como\n// =====================================================================================\nfunction trocarAcesso(chave) {\n  const u = eu_();\n  const a = u.acessos.find(x => chave_(x) === chave);\n  if (!a) throw new Error('Este acesso não é seu.');\n  props_().setProperty('acesso:' + u.email, chave);\n  props_().deleteProperty('vercomo:' + u.email);\n  return getData();\n}\nfunction verComo(agencia, perfil) {\n  const u = eu_();\n  const v = { agencia: ag_(agencia), perfil: String(perfil || '').trim().toLowerCase() };\n  if (!u.real.gerencia) throw new Error('Só quem gerencia pode usar o Ver como.');\n  if (!podeVerComo_(u.real, v, u.pm)) throw new Error('Você não pode ver como ' + labelAcesso_(v) + '.');\n  props_().setProperty('vercomo:' + u.email, JSON.stringify(v));\n  return getData();\n}\nfunction sairVerComo() {\n  const email = norm_(Session.getActiveUser().getEmail());\n  props_().deleteProperty('vercomo:' + email);\n  return getData();\n}\n\n// =====================================================================================\n// Pessoas\n// =====================================================================================\nfunction temTecnico_(acessos, pm) { return acessos.some(a => pm[a.perfil] && pm[a.perfil].tecnico); }\nfunction checaSobra_(lista, pm) {\n  const ativos = lista.filter(p => p.email && !nao_(p.ativo));\n  if (!ativos.some(p => acessosDe_(p).some(a => a.agencia === 'Matriz' && pm[a.perfil] && pm[a.perfil].gerencia)))\n    throw new Error('Precisa sobrar pelo menos uma pessoa ativa que gerencia na Matriz.');\n  if (!ativos.some(p => temTecnico_(acessosDe_(p), pm)))\n    throw new Error('Precisa sobrar pelo menos um dev ativo.');\n}\n\n// d = { emailOriginal, email, nome, agencia, perfil, ativo, acessos: [{agencia, perfil}] }\nfunction salvarPessoa(d) {\n  const u = euGrava_();\n  if (!u.admin) throw new Error('Seu acesso não gerencia pessoas.');\n  d = d || {};\n  comTrava_(() => {\n    const pm = mapaPerfis_();\n    const lista = ler_('Usuarios');\n    const orig = norm_(d.emailOriginal);\n    const velho = orig ? lista.find(p => norm_(p.email) === orig) : null;\n    if (orig && !velho) throw new Error('Pessoa não encontrada. Clique em Atualizar.');\n    const email = norm_(d.email);\n    if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) throw new Error('E-mail inválido.');\n    if (lista.some(p => p !== velho && norm_(p.email) === email)) throw new Error('Este e-mail já está cadastrado.');\n    const nome = txt_(d.nome, 120, 'Nome');\n    if (nome.length < 2) throw new Error('Preencha o nome da pessoa.');\n    const agencia = ag_(d.agencia), perfil = String(d.perfil || '').trim().toLowerCase();\n    if (AGENCIAS.indexOf(agencia) < 0) throw new Error('Escolha a agência.');\n    if (!pm[perfil]) throw new Error('Escolha o tipo de usuário.');\n    const ativo = d.ativo !== false;\n    const proprio = !!velho && norm_(velho.email) === u.email;\n    if (proprio && email !== orig) throw new Error('Você não pode mudar o seu próprio e-mail.');\n    if (proprio && !ativo) throw new Error('Você não pode desativar a si mesmo.');\n    if (velho && u.ve.indexOf(ag_(velho.agencia)) < 0) throw new Error('Esta pessoa é de outra agência. Só a Matriz pode alterá-la.');\n    if (u.ve.indexOf(agencia) < 0) throw new Error('Você só cadastra pessoas da sua agência (' + u.agencia + ').');\n\n    const vistos = {};\n    const novos = (Array.isArray(d.acessos) ? d.acessos : []).map(a => ({ agencia: ag_(a && a.agencia), perfil: String(a && a.perfil || '').trim().toLowerCase() }))\n      .filter(a => AGENCIAS.indexOf(a.agencia) >= 0 && pm[a.perfil] && !(a.agencia === agencia && a.perfil === perfil))\n      .filter(a => (vistos[chave_(a)] ? false : (vistos[chave_(a)] = true)));\n    if (novos.some(a => u.ve.indexOf(a.agencia) < 0)) throw new Error('Você só dá acessos da sua agência (' + u.agencia + ').');\n    const fora = velho ? extrasDe_(velho).filter(a => u.ve.indexOf(a.agencia) < 0 && !vistos[chave_(a)]) : [];\n    const extras = fora.concat(novos).slice(0, 10);\n\n    const antes = velho ? acessosDe_(velho) : [];\n    const depois = acessosDe_({ agencia: agencia, perfil: perfil, acessos: formataExtras_(extras) });\n    const tec = l => l.filter(a => pm[a.perfil] && pm[a.perfil].tecnico).map(chave_).sort().join(',');\n    if (!u.tecnico && tec(antes) !== tec(depois)) throw new Error('Só um dev pode dar ou tirar o tipo dev (ou outro tipo técnico).');\n    if (!u.tecnico && velho && temTecnico_(antes, pm) && nao_(velho.ativo) !== !ativo) throw new Error('Só um dev pode ativar ou desativar um dev.');\n    const chaves = l => l.map(chave_).sort().join(',');\n    if (proprio && !u.tecnico && chaves(antes) !== chaves(depois)) throw new Error('Você não pode mudar os seus próprios acessos. Peça a outro administrador.');\n\n    const obj = Object.assign({}, velho || {}, { email: email, nome: nome, agencia: agencia, perfil: perfil,\n      ativo: ativo ? 'sim' : 'não', acessos: formataExtras_(extras) });\n    const nova = velho ? lista.map(p => (p === velho ? obj : p)) : lista.concat([obj]);\n    checaSobra_(nova, pm);\n    const s = aba_('Usuarios');\n    delete obj._linha;\n    gravar_(s, velho ? velho._linha : s.getLastRow() + 1, obj);\n    if (proprio) props_().deleteProperty('acesso:' + u.email);\n  });\n  return getData();\n}\n\nfunction excluirPessoa(email) {\n  const u = euGrava_();\n  if (!u.admin) throw new Error('Seu acesso não gerencia pessoas.');\n  email = norm_(email);\n  comTrava_(() => {\n    const pm = mapaPerfis_();\n    const lista = ler_('Usuarios');\n    const p = lista.find(x => norm_(x.email) === email);\n    if (!p) throw new Error('Pessoa não encontrada. Clique em Atualizar.');\n    if (email === u.email) throw new Error('Você não pode excluir a si mesmo.');\n    if (u.ve.indexOf(ag_(p.agencia)) < 0) throw new Error('Esta pessoa é de outra agência. Só a Matriz pode excluí-la.');\n    if (extrasDe_(p).some(a => u.ve.indexOf(a.agencia) < 0)) throw new Error('Esta pessoa tem acesso em outra agência. Só a Matriz pode excluí-la.');\n    if (!u.tecnico && temTecnico_(acessosDe_(p), pm)) throw new Error('Só um dev pode excluir um dev.');\n    checaSobra_(lista.filter(x => x !== p), pm);\n    aba_('Usuarios').deleteRow(p._linha);\n  });\n  return getData();\n}\n\n// =====================================================================================\n// Tipos de usuário (só quem gerencia, na Matriz)\n// =====================================================================================\n// d = { perfil, novo: true|false, descricao, gerencia, tecnico, solicita, analisa, vota, aprova, libera }\nfunction salvarTipo(d) {\n  const u = euGrava_();\n  if (!u.admin || u.agencia !== 'Matriz') throw new Error('Só quem gerencia na Matriz cria ou altera tipos de usuário.');\n  d = d || {};\n  comTrava_(() => {\n    const pm = mapaPerfis_();\n    const descricao = txt_(d.descricao, 200, 'Descrição');\n    let nome = String(d.perfil || '').trim().toLowerCase();\n    if (d.novo) nome = nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');\n    if (!/^[a-z0-9_]{2,30}$/.test(nome)) throw new Error('Nome do tipo: de 2 a 30 letras ou números, sem espaço.');\n    const velho = ler_('Perfis').find(p => String(p.perfil).trim().toLowerCase() === nome);\n    if (d.novo && velho) throw new Error('Já existe um tipo chamado \"' + nome + '\".');\n    if (!d.novo && !velho) throw new Error('Tipo não encontrado. Clique em Atualizar.');\n    const fixo = FIXOS.indexOf(nome) >= 0;\n    const obj = { perfil: nome, descricao: descricao };\n    if (!fixo) {\n      const querTec = d.tecnico === true;\n      if ((querTec || (pm[nome] && pm[nome].tecnico)) && !u.tecnico) throw new Error('Só um dev cria ou altera um tipo técnico.');\n      obj.gerencia = d.gerencia === true ? 'sim' : 'não';\n      obj.tecnico = querTec ? 'sim' : 'não';\n      PERMS.forEach(k => { obj[k] = d[k] === true ? 'sim' : 'não'; });\n    }\n    if (!d.novo && !fixo) {                            // confere antes de gravar: sempre sobra gestor na Matriz e dev\n      const pm2 = clone_(pm);\n      pm2[nome] = Object.assign({}, pm2[nome], { gerencia: obj.gerencia === 'sim', tecnico: obj.tecnico === 'sim' });\n      checaSobra_(ler_('Usuarios'), pm2);\n    }\n    const s = aba_('Perfis');\n    gravar_(s, velho ? velho._linha : s.getLastRow() + 1, obj);\n  });\n  return getData();\n}\n\nfunction excluirTipo(perfil) {\n  const u = euGrava_();\n  if (!u.admin || u.agencia !== 'Matriz') throw new Error('Só quem gerencia na Matriz exclui tipos de usuário.');\n  perfil = String(perfil || '').trim().toLowerCase();\n  comTrava_(() => {\n    const pm = mapaPerfis_();\n    if (FIXOS.indexOf(perfil) >= 0) throw new Error('Os tipos usuario, admin e dev não podem ser excluídos.');\n    const p = ler_('Perfis').find(x => String(x.perfil).trim().toLowerCase() === perfil);\n    if (!p) throw new Error('Tipo não encontrado. Clique em Atualizar.');\n    if (pm[perfil] && pm[perfil].tecnico && !u.tecnico) throw new Error('Só um dev exclui um tipo técnico.');\n    const usando = ler_('Usuarios').filter(x => acessosDe_(x).some(a => a.perfil === perfil));\n    if (usando.length) throw new Error('Este tipo está em uso por ' + usando.length + ' pessoa(s). Troque o tipo dessas pessoas antes de excluir.');\n    aba_('Perfis').deleteRow(p._linha);\n  });\n  return getData();\n}\n\n// =====================================================================================\n// Links: logo do topo e menu \"Links e guias\"\n// =====================================================================================\nfunction salvarLinks(d) {\n  const u = euGrava_();\n  if (!u.admin || u.agencia !== 'Matriz') throw new Error('Só quem gerencia na Matriz altera os links.');\n  d = d || {};\n  const logoTxt = String(d.linkLogo || '').trim();\n  const linkLogo = https_(logoTxt);\n  if (logoTxt && !linkLogo) throw new Error('Link da logo: use um endereço que comece com https://');\n  const lista = Array.isArray(d.atalhos) ? d.atalhos : [];\n  if (lista.length > 30) throw new Error('No máximo 30 links.');\n  const atalhos = lista.map((a, i) => {\n    const nome = txt_(a && a.nome, 80, 'Nome do link ' + (i + 1));\n    const link = https_(a && a.link);\n    if (!nome) throw new Error('Link ' + (i + 1) + ': preencha o nome.');\n    if (!link) throw new Error('Link ' + (i + 1) + ' (' + nome + '): use um endereço que comece com https://');\n    return { nome: nome, link: link, descricao: txt_(a && a.descricao, 120, 'Descrição do link ' + (i + 1)) };\n  });\n  comTrava_(() => {\n    if (linkLogo) props_().setProperty('link_logo', linkLogo); else props_().deleteProperty('link_logo');\n    const s = garanteCab_('Atalhos'), h = cab_(s);\n    if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, h.length).clearContent();\n    if (atalhos.length) s.getRange(2, 1, atalhos.length, h.length).setValues(atalhos.map(a => h.map(k => seguro_(a[k] == null ? '' : a[k]))));\n  });\n  return getData();\n}\n\n// =====================================================================================\n// Editor: setup e diagnóstico\n// =====================================================================================\n// cria abas, cabeçalhos, tipos iniciais e listas suspensas. Pode rodar várias vezes: nunca apaga dados.\nfunction setup() {\n  Object.keys(ABAS).forEach(n => { garanteCab_(n).getRange('A:Z').setNumberFormat('@'); });\n  const existentes = ler_('Perfis').map(p => String(p.perfil).trim().toLowerCase());\n  const sp = aba_('Perfis'), hp = cab_(sp);\n  PERFIS_INICIAIS.forEach(l => {\n    if (existentes.indexOf(l[0]) >= 0) return;\n    const o = {};\n    ABAS.Perfis.forEach((k, i) => { o[k] = l[i]; });\n    gravar_(sp, sp.getLastRow() + 1, o);\n  });\n\n  const su = aba_('Usuarios'), hu = cab_(su);\n  const col = k => hu.indexOf(k) + 1;\n  const regra = l => SpreadsheetApp.newDataValidation().requireValueInList(l, true).setAllowInvalid(false).build();\n  su.getRange(2, col('agencia'), 999, 1).setDataValidation(regra(AGENCIAS));\n  su.getRange(2, col('ativo'), 999, 1).setDataValidation(regra(['sim', 'não']));\n  su.getRange(2, col('perfil'), 999, 1).setDataValidation(SpreadsheetApp.newDataValidation()\n    .requireValueInRange(sp.getRange(2, hp.indexOf('perfil') + 1, 999, 1), true).setAllowInvalid(false).build());\n\n  // primeiro dev: quem roda o setup, se ainda não houver nenhum\n  const email = norm_(Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail());\n  const pm = mapaPerfis_();\n  const lista = ler_('Usuarios');\n  if (!lista.some(p => !nao_(p.ativo) && temTecnico_(acessosDe_(p), pm)) && email) {\n    const x = lista.find(p => norm_(p.email) === email);\n    const obj = { email: email, nome: x ? (x.nome || email.split('@')[0]) : email.split('@')[0], agencia: 'Matriz', perfil: 'dev', ativo: 'sim' };\n    gravar_(su, x ? x._linha : su.getLastRow() + 1, obj);\n    Logger.log('Você (' + email + ') virou dev da Matriz.');\n  }\n  Logger.log('Setup concluído. Versão ' + VERSAO + '.');\n}\n\nfunction diagnostico() {\n  Logger.log(NOME_SISTEMA + ' · Versão ' + VERSAO + ' · Publicada em ' + VERSAO_DATA);\n  Logger.log('Planilha: ' + ss_().getName() + ' (' + ss_().getUrl() + ')');\n  try {\n    const u = eu_();\n    Logger.log('Pessoa: ' + u.nome + ' <' + u.email + '>');\n    Logger.log('Acesso em uso: ' + labelAcesso_(u.acesso) + (u.verComo ? ' · Ver como ' + labelAcesso_(u.verComo) : ''));\n    Logger.log('Acessos: ' + u.acessos.map(labelAcesso_).join(' | '));\n    Logger.log('Vê as agências: ' + u.ve.join(', ') + ' · Gerencia: ' + (u.admin ? 'sim' : 'não') + ' · Técnico: ' + (u.tecnico ? 'sim' : 'não'));\n    Logger.log('Etapas: ' + PERMS.filter(k => u.perm[k]).join(', '));\n    Logger.log('Operações que vê: ' + getData().operacoes.length);\n  } catch (e) {\n    Logger.log('Pessoa: ' + e.message);\n  }\n}\n" + '\n;return {' + "doGet,testarIcone,salvarOperacao,enviarAnalise,analisarOperacao,votarGerente,decidirDiretoria,liberarOperacao,cancelarOperacao,excluirOperacao,restaurarOperacao,getData,trocarAcesso,verComo,sairVerComo,salvarPessoa,excluirPessoa,salvarTipo,excluirTipo,salvarLinks,setup,diagnostico" + '};')).apply(null, Object.keys(M).map(k => M[k]));
+  const guardar = () => { try { const a = {}; Object.keys(estado.abas).forEach(n => { a[n] = estado.abas[n].d; }); localStorage.setItem(CHAVE, JSON.stringify({ abas: a, props: estado.props })); } catch (e) {} };
+  const como = (email, fn, ...a) => { estado.email = email; return S[fn](...a); };
+
+  /* dados de exemplo */
+  if (!salvo) {
+    const [DEV, ANA, BIA, CAR, DAV, EVA, FAB] = PESSOAS.map(p => p[0]);
+    estado.email = DEV; S.setup();
+    como(DEV, 'salvarPessoa', { emailOriginal: DEV, email: DEV, nome: 'Italo', agencia: 'Matriz', perfil: 'dev' });
+    como(DEV, 'salvarPessoa', { email: ANA, nome: 'Ana Atendente', agencia: '002', perfil: 'usuario' });
+    como(DEV, 'salvarPessoa', { email: BIA, nome: 'Bia Atendente', agencia: '003', perfil: 'usuario' });
+    como(DEV, 'salvarPessoa', { email: CAR, nome: 'Carlos Analista', agencia: 'Matriz', perfil: 'analista' });
+    como(DEV, 'salvarPessoa', { email: DAV, nome: 'Davi Gerente', agencia: '002', perfil: 'gerente', acessos: [{ agencia: '002', perfil: 'usuario' }] });
+    como(DEV, 'salvarPessoa', { email: EVA, nome: 'Eva Diretora', agencia: 'Matriz', perfil: 'diretoria' });
+    como(DEV, 'salvarPessoa', { email: FAB, nome: 'Fábio Admin', agencia: '002', perfil: 'admin' });
+    como(DEV, 'salvarLinks', { linkLogo: '', atalhos: [{ nome: 'Manual de crédito', link: 'https:' + '\/\/drive.google.com', descricao: 'Regras e alçadas' }] });
+    const ck = { spc: true, scr: true, cadastro: true, renda: true, documentos: true, proposta: true };
+    const op = (quem, x) => como(quem, 'salvarOperacao', Object.assign({ enviar: true, checklist: ck }, x)).ultimo;
+    const base = (coop, doc, mesa, mod, valor, prazo, fin, ag) => ({ cooperado: coop, documento: doc, numero_operacao: mesa, modalidade: mod, valor: valor, prazo: prazo, agencia: ag || '002',
+      dados: { finalidade: fin, tem_avalista: 'não', avalistas: [], tem_garantia: 'sim', garantias: [{ tipo: 'Alienação fiduciária de veículo', descricao: 'Veículo do cooperado', valor: valor }] } });
+    const itens = { capacidade: 'ok', restricoes: 'ok', endividamento: 'ok', garantias: 'ok', documentacao: 'ok' };
+    /* 1: liberada */
+    let n = op(ANA, base('José Pereira', '52998224725', '700101', 'Financiamento de veículo', 38000, 36, 'Compra de carro usado'));
+    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'A', recomendacao: 'Favorável', parecer: 'Renda compatível.' });
+    como(DAV, 'votarGerente', n, { acao: 'enviar', iap: '3,1', voto: 'Favorável', parecer: '' });
+    como(EVA, 'decidirDiretoria', n, 'aprovar', 'Aprovado.');
+    como(ANA, 'liberarOperacao', n, { data: '05/11/2026', contrato: 'CT-0001', obs: '' });
+    /* 2: na diretoria */
+    n = op(ANA, base('Mercado Bom Preço Ltda', '11222333000181', '700102', 'Capital de giro', 120000, 24, 'Estoque para o fim de ano'));
+    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: Object.assign({}, itens, { endividamento: 'nok' }), risco: 'C', recomendacao: 'Favorável com ressalvas', parecer: 'Endividamento alto no SCR, mas faturamento cobre.' });
+    como(DAV, 'votarGerente', n, { acao: 'enviar', iap: '2,4', voto: 'Favorável', parecer: 'Cliente antigo.' });
+    /* 3: com o gerente */
+    n = op(ANA, base('Fernanda Lima', '39053344705', '700103', 'Crédito pessoal', 8000, 12, 'Tratamento dentário'));
+    como(CAR, 'analisarOperacao', n, { acao: 'concluir', itens: itens, risco: 'B', recomendacao: 'Favorável', parecer: 'Sem restrições.' });
+    /* 4: em análise (agência 003) */
+    op(BIA, base('Antônio Rocha', '11144477735', '700104', 'Crédito rural', 60000, 48, 'Custeio da safra', '003'));
+    /* 5: pendente */
+    n = op(ANA, base('Paulo Mendes', '86288366757', '700105', 'Consignado', 15000, 48, 'Quitar outra dívida'));
+    como(CAR, 'analisarOperacao', n, { acao: 'pendencia', parecer: 'Falta o contracheque dos últimos 3 meses.' });
+    /* 6: rascunho */
+    como(ANA, 'salvarOperacao', { cooperado: 'Rita Souza', agencia: '002' });
+    guardar();
+  }
+
+  let QUEM = PESSOAS[1][0];
+  try { QUEM = localStorage.getItem(CHAVE + ':quem') || QUEM; } catch (e) {}
+  const mk = (ok, fail) => new Proxy({}, { get: (_, k) => {
+    if (k === 'withSuccessHandler') return f => mk(f, fail);
+    if (k === 'withFailureHandler') return f => mk(ok, f);
+    return (...a) => setTimeout(() => {
+      let r, erro = null;
+      try { r = JSON.parse(JSON.stringify(como(QUEM, k, ...JSON.parse(JSON.stringify(a))))); } catch (e) { erro = e; }
+      guardar();
+      if (erro) { if (fail) fail({ message: erro.message }); } else if (ok) ok(r);
+    }, 250);
+  } });
+  window.google = { script: { run: mk() } };
+
+  /* seletor "Testando como" */
+  document.addEventListener('DOMContentLoaded', () => {
+    const box = document.createElement('div');
+    box.id = 'demoBox';
+    box.innerHTML = '<style>body{padding-bottom:56px}#demoBox{position:fixed;left:12px;bottom:12px;z-index:85;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 24px);padding:6px 8px;border-radius:14px;background:#f4c21b;color:#16211a;font:600 12.5px Inter,system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(0,0,0,.45)}#demoBox select{height:30px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#16211a;font:inherit;max-width:190px}#demoBox button{height:30px;border:0;border-radius:8px;background:rgba(0,0,0,.15);color:#16211a;font:inherit;padding:0 8px;cursor:pointer}</style>' +
+      '<span>TESTE &middot; entrar como</span><select id="demoQuem"></select><button type="button" id="demoZerar" title="Apagar tudo e voltar aos dados de exemplo">Recomeçar</button>';
+    document.body.appendChild(box);
+    const sel = box.querySelector('select');
+    const lista = PESSOAS.slice();
+    try { (estado.abas.Usuarios.d || []).slice(1).forEach(l => { if (l[0] && !lista.some(p => p[0] === l[0])) lista.push([l[0], l[1] || l[0]]); }); } catch (e) {}
+    sel.innerHTML = lista.map(p => '<option value="' + p[0] + '"' + (p[0] === QUEM ? ' selected' : '') + '>' + p[1] + '</option>').join('');
+    sel.onchange = () => { try { localStorage.setItem(CHAVE + ':quem', sel.value); } catch (e) {} location.reload(); };
+    box.querySelector('#demoZerar').onclick = () => { try { localStorage.removeItem(CHAVE); } catch (e) {} location.reload(); };
+  });
+})();
+</script>
+<script>
+const VERSAO_TELA = 1;
+
+/* =================== estado =================== */
+let DB = null, CARREGOU_EM = 0, OCUPADO = false;
+let ABA = '';
+const UI = { filtro: 'tarefas', busca: '', ag: '', vistaU: 'pessoas', buscaP: '', agP: '', menu: '' };
+let F = null;          /* formulário da operação em edição */
+let FALTA = [];        /* campos marcados em vermelho no formulário */
+let PAINEL = null;     /* { tipo: 'op' | 'pessoa' | 'tipo', ... } */
+let A = {};            /* respostas do bloco de ação do painel (análise, voto, decisão, liberação) */
+let LINKS = null;      /* cópia em edição dos links */
+
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PT = '\u00b7', RET = '\u2026', NRO = 'N\u00ba';
+const REGULAR = { 'floppy-disk': 1, 'copy': 1 };   /* ícones que o Guia pede no estilo fa-regular */
+const ic = (n, extra) => '<i class="' + (REGULAR[n] ? 'fa-regular' : 'fa-solid') + ' fa-' + n + (extra ? ' ' + extra : '') + '"></i>';
+const brl = v => (+v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dig = s => String(s == null ? '' : s).replace(/\D/g, '');
+const iniciais = n => String(n || '?').trim().split(/\s+/).filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+const labelAg = a => a === 'Matriz' ? 'Matriz' : 'Agência ' + a;
+const nomePerfil = p => { const x = DB && DB.perfis.find(t => t.perfil === p); return x ? x.nome : p; };
+function fmtDoc(d) {
+  d = dig(d);
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return d;
+}
+function hoje() { const d = new Date(), p = n => (n < 10 ? '0' : '') + n; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+
+window.__ctx = () => ({
+  versaoTela: VERSAO_TELA,
+  versao: DB ? DB.versao.numero : '',
+  email: DB ? DB.eu.email : '',
+  acesso: DB ? (DB.eu.acesso.label + (DB.eu.verComo ? ' (vendo como ' + DB.eu.verComo.label + ')' : '')) : ''
+});
+
+/* =================== servidor =================== */
+function run(fn, ...args) {
+  return new Promise((ok, erro) => {
+    const r = google.script.run
+      .withSuccessHandler(ok)
+      .withFailureHandler(e => erro(new Error((e && e.message) ? e.message : String(e))));
+    r[fn].apply(r, args);
+  });
+}
+function girar(sim) { const b = $('#btnAtualizar'); if (b) b.classList.toggle('gira', !!sim); }
+
+async function carregar() {
+  girar(true);
+  if (!DB) estado('carregando');
+  const lento = setTimeout(() => { if (!DB) estado('lento'); }, 20000);
+  try {
+    aplicar(await run('getData'));
+  } catch (e) {
+    if (!DB) {
+      if (/^Acesso não liberado/.test(e.message)) estado('bloqueado', e.message.replace(/^Acesso não liberado:\s*/, ''));
+      else estado('erro', e.message);
+    } else popErro(e.message);
+  } finally { clearTimeout(lento); girar(false); }
+}
+
+/* chama o servidor numa ação de gravar; a resposta é o getData() novo */
+async function acao(fn, args, depois) {
+  if (OCUPADO) return;
+  OCUPADO = true; girar(true);
+  $$('[data-trava]').forEach(b => { b.disabled = true; });
+  try {
+    const r = await run(fn, ...args);
+    aplicar(r);
+    if (depois) depois(r);
+  } catch (e) {
+    popErro(e.message);
+  } finally {
+    OCUPADO = false; girar(false);
+    $$('[data-trava]').forEach(b => { b.disabled = false; });
+  }
+}
+
+function aplicar(r) {
+  DB = r; CARREGOU_EM = Date.now();
+  if (!F) F = formVazio();
+  const abas = abasVisiveis();
+  if (!abas.find(a => a.id === ABA)) ABA = 'ops';
+  render();
+}
+
+/* =================== estados da tela =================== */
+function estado(tipo, msg) {
+  $('#tabsbar').hidden = true;
+  const m = $('#main');
+  if (tipo === 'carregando') m.innerHTML = '<div class="estado"><div class="bol"><div class="anel"></div></div><h2>Carregando' + RET + '</h2><p>Buscando seus dados na planilha.</p></div>';
+  if (tipo === 'lento') m.innerHTML = '<div class="estado"><div class="bol"><div class="anel"></div></div><h2>A planilha não respondeu' + RET + '</h2><p>Se você está logado em mais de uma conta Google, abra numa janela anônima só com a conta da empresa.</p></div>';
+  if (tipo === 'bloqueado') m.innerHTML = '<div class="estado"><div class="bol" style="color:var(--warn)">' + ic('lock') + '</div><h2>Acesso não liberado</h2><p>' + esc(msg) + '</p></div>';
+  if (tipo === 'erro') m.innerHTML = '<div class="estado"><div class="bol" style="color:var(--danger)">' + ic('plug') + '</div><h2>Não deu para carregar.</h2><p>Motivo: ' + esc(msg) + '</p><p><button class="btn btn-primary" data-a="atualizar">' + ic('rotate-right') + ' Tentar de novo</button></p></div>';
+}
+
+/* =================== desenho geral =================== */
+function render() {
+  renderTopo(); renderAbas(); renderVC(); renderRodape();
+  renderConteudo();
+  if (PAINEL) renderPainel();
+}
+function renderConteudo() {
+  const m = $('#main');
+  if (ABA === 'nova') m.innerHTML = telaForm();
+  else if (ABA === 'ops') m.innerHTML = telaOps();
+  else if (ABA === 'usuarios') m.innerHTML = telaUsuarios();
+  else if (ABA === 'gerenciar') m.innerHTML = telaGerenciar();
+  if (ABA === 'nova') atualizaContadores();
+}
+
+function renderTopo() {
+  const e = DB.eu;
+  $('#logo').innerHTML = DB.linkLogo
+    ? '<a class="logo" href="' + esc(DB.linkLogo) + '" target="_top" title="CrediBrás"><svg><use href="#mark"/></svg><span>CrediBrás</span></a>'
+    : '<span class="logo"><svg><use href="#mark"/></svg><span>CrediBrás</span></span>';
+  const tem = DB.atalhos.length > 0;
+  let s = '<button type="button" class="sis" ' + (tem ? 'data-a="menu" data-m="links" aria-haspopup="true" aria-expanded="' + (UI.menu === 'links') + '"' : 'disabled') + '>' + esc(DB.sistema) + (tem ? ' <span class="chev">' + ic('chevron-down') + '</span>' : '') + '</button>';
+  if (UI.menu === 'links') {
+    s += '<div class="menu esq" role="menu"><div class="cap">Links e guias</div>' + DB.atalhos.map(a =>
+      '<a class="mi" href="' + esc(a.link) + '" target="_blank" rel="noopener"><span class="ic">' + ic('book-open') + '</span><span class="tx"><b>' + esc(a.nome) + '</b>' + (a.descricao ? '<small>' + esc(a.descricao) + '</small>' : '') + '</span>' + ic('up-right-from-square', 'muted') + '</a>').join('') + '</div>';
+  }
+  $('#sisWrap').innerHTML = s;
+  const pa = $('#pillAg'); pa.hidden = false; pa.textContent = e.agencia === 'Matriz' ? 'Matriz' : 'Agência ' + e.agencia;
+  const dv = $('#devBtns');
+  dv.hidden = !DB.central;
+  dv.innerHTML = DB.central ? '<a class="devbtn" href="' + esc(DB.central.planilha) + '" target="_blank" rel="noopener">' + ic('table') + ' Planilha</a><a class="devbtn" href="' + esc(DB.central.codigo) + '" target="_blank" rel="noopener">' + ic('code') + ' Código</a>' : '';
+  let u = '<button type="button" class="userbtn" data-a="menu" data-m="user" aria-haspopup="true" aria-expanded="' + (UI.menu === 'user') + '"><span class="av"></span><span class="nm"></span><span class="chev">' + ic('chevron-down') + '</span></button>';
+  if (UI.menu === 'user') {
+    u += '<div class="menu dir" role="menu"><div class="grp"><div class="me"><span class="av"></span><div style="min-width:0"><b class="nmx"></b><div class="em"></div><div class="ac">' + esc(e.acesso.label) + '</div></div></div></div>';
+    if (e.acessos.length > 1) {
+      u += '<div class="grp"><div class="cap">Trocar de acesso</div>' + e.acessos.map(a => {
+        const on = a.chave === e.acesso.chave;
+        return '<button type="button" class="mi' + (on ? ' on' : '') + '" data-a="trocar" data-k="' + esc(a.chave) + '"><span class="ic">' + ic(a.agencia === 'Matriz' ? 'building-columns' : 'key') + '</span><span class="tx"><b>' + esc(a.label) + '</b></span>' + (on ? '<span class="ok">' + ic('check') + '</span>' : '') + '</button>';
+      }).join('') + '</div>';
+    }
+    if (e.podeVerComo && e.verComoOpcoes) {
+      const o = e.verComoOpcoes;
+      u += '<div class="grp"><div class="cap">' + ic('eye') + ' Ver como (para testar)</div><div class="vcform">' +
+        '<select class="in" id="vcAg" aria-label="Agência">' + o.agencias.map(a => '<option value="' + esc(a) + '">' + esc(labelAg(a)) + '</option>').join('') + '</select>' +
+        '<select class="in" id="vcPf" aria-label="Tipo">' + o.perfis.map(p => '<option value="' + esc(p.perfil) + '">' + esc(p.nome) + '</option>').join('') + '</select>' +
+        '<button type="button" class="btn btn-primary" style="width:100%" data-a="verComo">' + ic('eye') + ' Ver como</button></div></div>';
+    }
+    u += '</div>';
+  }
+  const uw = $('#userWrap'); uw.innerHTML = u;
+  $$('.av', uw).forEach(x => { x.textContent = iniciais(e.nome); });
+  $('.nm', uw).textContent = e.nome.split(' ')[0];
+  if ($('.nmx', uw)) { $('.nmx', uw).textContent = e.nome; $('.em', uw).textContent = e.email; }
+}
+
+function abasVisiveis() {
+  const e = DB.eu, l = [];
+  if (e.perm.solicita) l.push({ id: 'nova', nome: F && F.n ? 'Corrigir operação' : 'Nova operação', icone: F && F.n ? 'pen' : 'circle-plus' });
+  l.push({ id: 'ops', nome: 'Operações', icone: 'list-check', cont: tarefas().length });
+  if (e.admin) l.push({ id: 'usuarios', nome: 'Usuários', icone: 'user-group' });
+  if (e.admin && e.matriz) l.push({ id: 'gerenciar', nome: 'Links', icone: 'book-open' });
+  return l;
+}
+function renderAbas() {
+  $('#tabsbar').hidden = false;
+  $('#nav').innerHTML = abasVisiveis().map(a => '<button type="button" role="tab" data-a="aba" data-id="' + a.id + '" aria-selected="' + (a.id === ABA) + '">' + ic(a.icone) + ' ' + esc(a.nome) + (a.cont ? ' <span class="cnt">' + a.cont + '</span>' : '') + '</button>').join('');
+}
+function renderVC() {
+  const v = DB.eu.verComo, b = $('#vcbar');
+  b.hidden = !v;
+  b.innerHTML = v ? '<div class="wrap"><span>' + ic('eye') + '</span><span class="tx">Você está vendo <b>' + esc(v.label) + '</b>. Só para conferir: nada é salvo.</span><button type="button" class="btn btn-sm btn-outline pillbtn" data-a="sairVC">' + ic('arrow-left') + ' Voltar ao meu acesso</button></div>' : '';
+}
+function renderRodape() {
+  const f = $('#rodape'), v = DB.versao;
+  if (+v.numero !== VERSAO_TELA) {
+    f.className = 'alerta';
+    f.textContent = 'Atenção: a tela está na versão ' + VERSAO_TELA + ' e o servidor na ' + v.numero + '. Um dos arquivos não foi atualizado.';
+  } else {
+    const p = String(v.data).split(' ');
+    f.className = '';
+    f.textContent = DB.sistema + ' ' + PT + ' Versão ' + v.numero + ' ' + PT + ' Publicada em ' + p[0] + (p[1] ? ' às ' + p[1] : '');
+  }
+}
+
+/* =================== operações: regras de exibição =================== */
+const ETAPAS = [
+  { nome: 'Solicitação', sub: 'Atendente' },
+  { nome: 'Análise', sub: 'Analista' },
+  { nome: 'Gerente', sub: 'IAP e voto' },
+  { nome: 'Diretoria', sub: 'Aprovação' },
+  { nome: 'Liberação', sub: 'Atendente' }
+];
+const ETAPA_DO_STATUS = { 'Rascunho': 0, 'Pendente': 0, 'Em análise': 1, 'Com o gerente': 2, 'Na diretoria': 3, 'Aprovada': 4, 'Liberada': 5, 'Reprovada': 3, 'Cancelada': -1 };
+const COR = { 'Rascunho': '', 'Pendente': 'wait', 'Em análise': 'info', 'Com o gerente': 'info', 'Na diretoria': 'info', 'Aprovada': 'ok', 'Liberada': 'ok', 'Reprovada': 'no', 'Cancelada': '' };
+const tag = st => '<span class="tag ' + (COR[st] || '') + '">' + esc(st) + '</span>';
+function proximo(o) {
+  return ({
+    'Rascunho': 'Atendente envia para análise', 'Pendente': 'Atendente corrige a pendência',
+    'Em análise': 'Aguardando a análise', 'Com o gerente': 'Aguardando IAP e voto do gerente',
+    'Na diretoria': 'Aguardando a diretoria', 'Aprovada': 'Aguardando a liberação',
+    'Liberada': 'Liberada em ' + ((o.liberacao && o.liberacao.data) || ''), 'Reprovada': 'Encerrada', 'Cancelada': 'Encerrada'
+  })[o.status] || '';
+}
+const ehTarefa = o => (o.editar && (o.status === 'Pendente' || o.meu)) || o.analisar || o.votar || o.decidir || o.liberar;
+const tarefas = () => DB.operacoes.filter(ehTarefa);
+const FILTROS = [
+  { id: 'tarefas', nome: 'Minhas tarefas', f: ehTarefa },
+  { id: 'andamento', nome: 'Em andamento', f: o => ['Rascunho', 'Pendente', 'Em análise', 'Com o gerente', 'Na diretoria'].indexOf(o.status) >= 0 },
+  { id: 'aprovadas', nome: 'Aprovadas', f: o => o.status === 'Aprovada' },
+  { id: 'liberadas', nome: 'Liberadas', f: o => o.status === 'Liberada' },
+  { id: 'encerradas', nome: 'Reprovadas e canceladas', f: o => o.status === 'Reprovada' || o.status === 'Cancelada' },
+  { id: 'todas', nome: 'Todas', f: () => true }
+];
+
+function telaOps() {
+  const e = DB.eu;
+  const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
+  const q = UI.busca.trim().toLowerCase(), qd = dig(q);
+  const filtro = FILTROS.find(f => f.id === UI.filtro) || FILTROS[0];
+  const lista = base.filter(filtro.f).filter(o => !q ||
+    String(o.cooperado).toLowerCase().indexOf(q) >= 0 || String(o.numero_operacao).toLowerCase().indexOf(q) >= 0 ||
+    (qd && (o.documento.indexOf(qd) >= 0 || String(o.n) === qd)));
+  let h = '<div class="stack"><div class="row" style="justify-content:space-between"><h2 class="tit">Operações de crédito</h2>' +
+    (e.perm.solicita ? '<button class="btn btn-primary" data-a="novaOp">' + ic('plus') + ' Nova operação</button>' : '') + '</div>';
+  h += '<div class="toolbar">' + FILTROS.map(f => {
+    const n = base.filter(f.f).length;
+    return '<button type="button" class="chip" data-a="filtro" data-id="' + f.id + '" aria-pressed="' + (f.id === filtro.id) + '">' + esc(f.nome) + (f.id !== 'todas' && n ? ' <span class="cnt">' + n + '</span>' : '') + '</button>';
+  }).join('') + '</div>';
+  h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaOps" placeholder="Buscar por cooperado, CPF/CNPJ, número da operação' + RET + '" value="' + esc(UI.busca) + '"></div>';
+  if (e.ve.length > 1) h += '<select class="in" id="agOps" style="width:auto" aria-label="Agência"><option value="">Todas as agências</option>' + e.ve.map(a => '<option value="' + a + '"' + (UI.ag === a ? ' selected' : '') + '>' + esc(labelAg(a)) + '</option>').join('') + '</select>';
+  h += '</div>';
+  if (!lista.length) {
+    h += '<div class="vazio">' + (filtro.id === 'tarefas' && !q ? ic('circle-check') + ' Nenhuma tarefa sua agora. Tudo em dia!' : 'Nenhuma operação encontrada.') + '</div>';
+  } else {
+    h += '<div class="lista">' + lista.map(o =>
+      '<button type="button" class="item' + (ehTarefa(o) ? ' tarefa' : '') + '" data-a="abrirOp" data-n="' + o.n + '">' +
+      '<span class="nro num"><small>' + NRO + '</small>' + o.n + '</span>' +
+      '<span class="mid"><b>' + esc(o.cooperado) + '</b><span class="sub">' + esc([fmtDoc(o.documento), o.modalidade, labelAg(o.agencia), o.numero_operacao ? 'Mesa ' + o.numero_operacao : ''].filter(Boolean).join(' ' + PT + ' ')) + '</span></span>' +
+      '<span class="dir"><span class="val num">' + brl(o.valor) + (o.prazo ? ' <span class="muted small">em ' + o.prazo + 'x</span>' : '') + '</span>' + tag(o.status) + '<span class="prox">' + esc(proximo(o)) + '</span></span></button>').join('') + '</div>';
+  }
+  return h + '</div>';
+}
+
+/* =================== formulário da operação =================== */
+function formVazio() {
+  return { n: null, rev: null, status: '', agencia: DB ? DB.eu.agencia : '', cooperado: '', documento: '', conta: '', numero_operacao: '', modalidade: '', valor: '', prazo: '',
+    checklist: {}, dados: { finalidade: '', observacao: '', tem_avalista: '', avalistas: [{ nome: '', documento: '' }], tem_garantia: '', garantias: [{ tipo: '', descricao: '', valor: '' }] } };
+}
+function formDe(o) {
+  const v = n => n ? (+n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+  const d = o.dados || {};
+  return { n: o.n, rev: o.rev, status: o.status, agencia: o.agencia, cooperado: o.cooperado || '', documento: fmtDoc(o.documento), conta: o.conta || '',
+    numero_operacao: o.numero_operacao || '', modalidade: o.modalidade || '', valor: v(o.valor), prazo: o.prazo ? String(o.prazo) : '',
+    checklist: Object.assign({}, o.checklist), pendencia: o.analise && o.analise.pendencia, ultimaObs: ultimaDevolucao(o),
+    dados: { finalidade: d.finalidade || '', observacao: d.observacao || '', tem_avalista: d.tem_avalista || '', tem_garantia: d.tem_garantia || '',
+      avalistas: (d.avalistas && d.avalistas.length ? d.avalistas : [{ nome: '', documento: '' }]).map(a => ({ nome: a.nome, documento: fmtDoc(a.documento) })),
+      garantias: (d.garantias && d.garantias.length ? d.garantias : [{ tipo: '', descricao: '', valor: '' }]).map(g => ({ tipo: g.tipo, descricao: g.descricao, valor: v(g.valor) })) } };
+}
+function ultimaDevolucao(o) {
+  const h = (o.historico || []).slice().reverse().find(x => /^devolveu/.test(x.acao));
+  return h && o.status === 'Pendente' ? h : null;
+}
+function getPath(o, p) { return p.split('.').reduce((a, k) => (a == null ? a : a[k]), o); }
+function setPath(o, p, v) { const ks = p.split('.'); const u = ks.pop(); ks.reduce((a, k) => a[k], o)[u] = v; }
+
+function campo(rot, path, opt) {
+  opt = opt || {};
+  const v = getPath(F, path);
+  const err = FALTA.indexOf(path) >= 0;
+  let inp;
+  if (opt.tipo === 'select') inp = '<select class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '"><option value="">Escolha' + RET + '</option>' + opt.lista.map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>';
+  else if (opt.tipo === 'area') inp = '<textarea class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '" maxlength="' + (opt.max || 2000) + '" placeholder="' + esc(opt.ph || '') + '">' + esc(v) + '</textarea>';
+  else inp = '<input class="in' + (v ? ' cheio' : '') + '" data-f="' + path + '" id="f_' + path + '" value="' + esc(v) + '"' + (opt.mask ? ' data-mask="' + opt.mask + '" inputmode="' + (opt.mask === 'doc' || opt.mask === 'int' || opt.mask === 'data' ? 'numeric' : 'decimal') + '"' : '') + (opt.check ? ' data-check="' + opt.check + '"' : '') + ' maxlength="' + (opt.max || 150) + '" placeholder="' + esc(opt.ph || '') + '" autocomplete="off">';
+  return '<div class="campo' + (opt.full ? ' full' : '') + (err ? ' erro' : '') + '" data-campo="' + path + '"><label for="f_' + path + '">' + esc(rot) + (opt.ob ? ' <span class="ob">*</span>' : '') + '</label>' + inp +
+    (err ? '<span class="msgerro">' + ic('circle-xmark') + ' ' + esc(opt.msg || 'Preencha este campo.') + '</span>' : '') + '</div>';
+}
+function simNao(path) {
+  const v = getPath(F, path), err = FALTA.indexOf(path) >= 0;
+  return '<div class="row" data-campo="' + path + '">' + ['sim', 'não'].map(x => '<button type="button" class="chip" data-a="fset" data-p="' + path + '" data-v="' + x + '" aria-pressed="' + (v === x) + '">' + (x === 'sim' ? 'Sim' : 'Não') + '</button>').join('') +
+    (err ? '<span class="msgerro">' + ic('circle-xmark') + ' Responda sim ou não.</span>' : '') + '</div>';
+}
+function secao(id, titulo, corpo) {
+  return '<section class="secao" data-sec="' + id + '"><div class="hd"><span class="bola"></span><h3>' + titulo + '</h3><span class="contador" data-cont="' + id + '"></span></div><div class="bx">' + corpo + '</div></section>';
+}
+function passos(atual, falhou) {
+  return '<div class="passos" aria-label="Etapas da operação">' + ETAPAS.map((e, i) => {
+    const cl = i < atual ? 'feito' : i === atual ? 'atual' : '';
+    return '<div class="passo ' + cl + '"><span class="c">' + (i < atual ? ic('check') : i + 1) + '</span><b>' + e.nome + '</b><small>' + e.sub + '</small></div>';
+  }).join('') + '</div>';
+}
+
+function telaForm() {
+  const L = DB.listas, e = DB.eu;
+  let h = '<div class="stack">';
+  h += '<div class="row" style="justify-content:space-between"><h2 class="tit">' + (F.n ? 'Corrigir operação ' + NRO + ' ' + F.n : 'Nova operação de crédito') + '</h2>' +
+    (F.n ? '<span>' + tag(F.status) + '</span>' : '') + '</div>';
+  h += '<div class="card">' + passos(0) + '</div>';
+  if (F.ultimaObs) h += '<div class="aviso">' + ic('triangle-exclamation') + '<div><b>Devolvida por ' + esc(F.ultimaObs.por) + ' em ' + esc(F.ultimaObs.em) + '</b><div class="texto">' + esc(F.ultimaObs.obs) + '</div></div></div>';
+  h += '<div class="barra" title="Preenchimento"><div id="barraF" style="width:0"></div></div>';
+
+  let ag = '';
+  if (e.ve.length > 1) {
+    ag = '<div class="campo full"><span class="lb">Agência da operação <span class="ob">*</span></span><div class="row">' + e.ve.map(a => '<button type="button" class="chip" data-a="fset" data-p="agencia" data-v="' + a + '" aria-pressed="' + (F.agencia === a) + '">' + esc(labelAg(a)) + '</button>').join('') + '</div></div>';
+  }
+  h += secao('coop', 'Cooperado', '<div class="grid2">' +
+    campo('Nome do cooperado', 'cooperado', { ob: true, full: true, ph: 'Nome completo ou razão social' }) +
+    campo('CPF ou CNPJ', 'documento', { ob: true, mask: 'doc', check: 'doc', max: 18, ph: '000.000.000-00', msg: 'CPF ou CNPJ inválido. Confira os números.' }) +
+    campo('Conta corrente', 'conta', { max: 30 }) + '</div>');
+  h += secao('op', 'Operação (mesa de negócios)', '<div class="grid2">' + ag +
+    campo('Número da operação na mesa de negócios', 'numero_operacao', { ob: true, max: 40, ph: 'Ex.: 123456' }) +
+    campo('Modalidade', 'modalidade', { ob: true, tipo: 'select', lista: L.modalidades }) +
+    campo('Valor (R$)', 'valor', { ob: true, mask: 'money', max: 20, ph: '0,00' }) +
+    campo('Prazo (meses)', 'prazo', { ob: true, mask: 'int', max: 3, ph: '0' }) +
+    campo('Finalidade', 'dados.finalidade', { ob: true, tipo: 'area', full: true, max: 1000, ph: 'Para que o cooperado vai usar o crédito' }) + '</div>');
+  h += secao('check', 'Checklist da solicitação', L.checkSolicitacao.map(c => {
+    const err = FALTA.indexOf('checklist.' + c.id) >= 0;
+    return '<label class="chk' + (err ? ' erro' : '') + '" data-campo="checklist.' + c.id + '"><input type="checkbox" data-fc="' + c.id + '"' + (F.checklist[c.id] ? ' checked' : '') + '><span>' + esc(c.nome) + (c.obrig ? ' <span class="ob" style="color:var(--danger)">*</span>' : ' <span class="muted small">(se tiver)</span>') + '</span></label>';
+  }).join(''));
+  let av = '<div class="campo"><span class="lb">O cooperado possui avalista? <span class="ob">*</span></span>' + simNao('dados.tem_avalista') + '</div>';
+  if (F.dados.tem_avalista === 'sim') {
+    av += '<div style="margin-top:12px">' + F.dados.avalistas.map((a, i) => '<div class="linha"><div class="grid3" style="grid-template-columns:2fr 1.3fr auto">' +
+      campo('Nome do avalista ' + (i + 1), 'dados.avalistas.' + i + '.nome', { ob: i === 0 }) +
+      campo('CPF/CNPJ', 'dados.avalistas.' + i + '.documento', { ob: i === 0, mask: 'doc', check: 'doc', max: 18, ph: '000.000.000-00', msg: 'CPF ou CNPJ inválido.' }) +
+      (F.dados.avalistas.length > 1 ? '<button type="button" class="btn btn-ghost" data-a="fdel" data-p="dados.avalistas" data-i="' + i + '" aria-label="Remover avalista" title="Remover avalista">' + ic('trash') + '</button>' : '<span></span>') +
+      '</div></div>').join('') + (F.dados.avalistas.length < 5 ? '<button type="button" class="btn btn-outline btn-sm" data-a="fadd" data-p="dados.avalistas">' + ic('plus') + ' Adicionar avalista</button>' : '') + '</div>';
+  }
+  h += secao('aval', 'Avalista', av);
+  let gr = '<div class="campo"><span class="lb">A operação tem garantia? <span class="ob">*</span></span>' + simNao('dados.tem_garantia') + '</div>';
+  if (F.dados.tem_garantia === 'sim') {
+    gr += '<div style="margin-top:12px">' + F.dados.garantias.map((g, i) => '<div class="linha"><div class="grid3">' +
+      campo('Tipo da garantia ' + (i + 1), 'dados.garantias.' + i + '.tipo', { ob: i === 0, tipo: 'select', lista: L.garantias }) +
+      campo('Descrição', 'dados.garantias.' + i + '.descricao', { ob: i === 0, max: 500, ph: 'Ex.: veículo, placa, matrícula' }) +
+      campo('Valor (R$)', 'dados.garantias.' + i + '.valor', { mask: 'money', max: 20, ph: '0,00' }) +
+      (F.dados.garantias.length > 1 ? '<button type="button" class="btn btn-ghost" data-a="fdel" data-p="dados.garantias" data-i="' + i + '" aria-label="Remover garantia" title="Remover garantia">' + ic('trash') + '</button>' : '<span></span>') +
+      '</div></div>').join('') + (F.dados.garantias.length < 10 ? '<button type="button" class="btn btn-outline btn-sm" data-a="fadd" data-p="dados.garantias">' + ic('plus') + ' Adicionar garantia</button>' : '') + '</div>';
+  }
+  h += secao('gar', 'Garantias', gr);
+  h += secao('obs', 'Observações', campo('Observações para a análise', 'dados.observacao', { tipo: 'area', max: 2000, ph: 'Opcional' }));
+  h += '<div class="form-acoes">' +
+    '<button type="button" class="btn btn-ghost" data-a="descartarForm">' + ic('xmark') + ' Descartar</button>' +
+    '<button type="button" class="btn btn-outline" data-a="salvarForm" data-trava>' + ic('floppy-disk') + ' Salvar rascunho</button>' +
+    '<button type="button" class="btn btn-primary" data-a="enviarForm" data-trava>' + ic('paper-plane') + ' Enviar para análise</button></div>';
+  return h + '</div>';
+}
+
+/* o que falta para enviar (igual ao servidor) */
+function faltaForm() {
+  const f = [], nomes = [];
+  const add = (p, n) => { f.push(p); nomes.push(n); };
+  if (!F.cooperado.trim()) add('cooperado', 'nome do cooperado');
+  if (!docOk(F.documento)) add('documento', 'CPF/CNPJ do cooperado');
+  if (!F.numero_operacao.trim()) add('numero_operacao', 'número da operação na mesa de negócios');
+  if (!F.modalidade) add('modalidade', 'modalidade');
+  if (!(numBR(F.valor) > 0)) add('valor', 'valor');
+  if (!(+F.prazo > 0)) add('prazo', 'prazo');
+  if (!F.dados.finalidade.trim()) add('dados.finalidade', 'finalidade');
+  DB.listas.checkSolicitacao.forEach(c => { if (c.obrig && !F.checklist[c.id]) add('checklist.' + c.id, c.nome); });
+  if (!F.dados.tem_avalista) add('dados.tem_avalista', 'se possui avalista');
+  else if (F.dados.tem_avalista === 'sim') {
+    const a = F.dados.avalistas[0];
+    if (!a.nome.trim()) add('dados.avalistas.0.nome', 'nome do avalista');
+    if (!docOk(a.documento)) add('dados.avalistas.0.documento', 'CPF do avalista');
+  }
+  if (!F.dados.tem_garantia) add('dados.tem_garantia', 'se possui garantia');
+  else if (F.dados.tem_garantia === 'sim') {
+    const g = F.dados.garantias[0];
+    if (!g.tipo) add('dados.garantias.0.tipo', 'tipo da garantia');
+    if (!g.descricao.trim()) add('dados.garantias.0.descricao', 'descrição da garantia');
+  }
+  return { campos: f, nomes: nomes };
+}
+const SECOES = {
+  coop: () => [F.cooperado.trim(), docOk(F.documento)],
+  op: () => [F.numero_operacao.trim(), F.modalidade, numBR(F.valor) > 0, +F.prazo > 0, F.dados.finalidade.trim()],
+  check: () => DB.listas.checkSolicitacao.filter(c => c.obrig).map(c => F.checklist[c.id]),
+  aval: () => F.dados.tem_avalista === 'sim' ? [true, F.dados.avalistas[0].nome.trim() && docOk(F.dados.avalistas[0].documento)] : [F.dados.tem_avalista],
+  gar: () => F.dados.tem_garantia === 'sim' ? [true, F.dados.garantias[0].tipo && F.dados.garantias[0].descricao.trim()] : [F.dados.tem_garantia]
+};
+function atualizaContadores() {
+  let tot = 0, ok = 0;
+  Object.keys(SECOES).forEach(k => {
+    const l = SECOES[k](), n = l.filter(Boolean).length;
+    tot += l.length; ok += n;
+    const c = $('[data-cont="' + k + '"]');
+    if (c) { c.textContent = n + '/' + l.length; c.classList.toggle('ok', n === l.length); }
+  });
+  const b = $('#barraF'); if (b) b.style.width = Math.round(ok / tot * 100) + '%';
+}
+function dadosForm(enviar) {
+  return { n: F.n, rev: F.rev, enviar: !!enviar, agencia: F.agencia, cooperado: F.cooperado, documento: F.documento, conta: F.conta,
+    numero_operacao: F.numero_operacao, modalidade: F.modalidade, valor: F.valor, prazo: F.prazo, checklist: F.checklist,
+    dados: { finalidade: F.dados.finalidade, observacao: F.dados.observacao,
+      tem_avalista: F.dados.tem_avalista, avalistas: F.dados.tem_avalista === 'sim' ? F.dados.avalistas : [],
+      tem_garantia: F.dados.tem_garantia, garantias: F.dados.tem_garantia === 'sim' ? F.dados.garantias : [] } };
+}
+
+/* =================== máscaras e validação =================== */
+function docOk(v) {
+  const c = dig(v);
+  if (/^(\d)\1+$/.test(c)) return false;
+  if (c.length === 11) {
+    for (let t = 9; t < 11; t++) { let s = 0; for (let i = 0; i < t; i++) s += +c[i] * (t + 1 - i); if (((s * 10) % 11) % 10 !== +c[t]) return false; }
+    return true;
+  }
+  if (c.length === 14) {
+    const calc = len => { let s = 0, p = len - 7; for (let i = 0; i < len; i++) { s += +c[i] * p--; if (p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+    return calc(12) === +c[12] && calc(13) === +c[13];
+  }
+  return false;
+}
+function dataOk(v) {
+  const m = String(v || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return false;
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d.getFullYear() === +m[3] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[1];
+}
+const numBR = v => { const t = String(v || '').replace(/\./g, '').replace(',', '.'); return isFinite(+t) ? +t : 0; };
+const MASK = {
+  doc: v => {
+    const d = dig(v).slice(0, 14);
+    if (d.length <= 11) return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+  },
+  money: v => { const d = dig(v).replace(/^0+/, '').slice(0, 13); if (!d) return ''; const n = (+d / 100); return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+  int: v => dig(v).slice(0, 3),
+  dec: v => { let t = String(v).replace(/[^\d,]/g, ''); const i = t.indexOf(','); if (i >= 0) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/,/g, '').slice(0, 2); return t.slice(0, 10); },
+  data: v => { const d = dig(v).slice(0, 8); return d.replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3'); }
+};
+const CHECKS = {
+  doc: { ok: v => !v || docOk(v), msg: 'CPF ou CNPJ inválido. Confira os números.' },
+  data: { ok: v => !v || dataOk(v), msg: 'Data inválida. Use dd/mm/aaaa.' }
+};
+/* validação ao sair do campo */
+function check(el) {
+  const k = el.getAttribute('data-check'); if (!k) return true;
+  const c = el.closest('.campo'); const okv = CHECKS[k].ok(el.value);
+  if (c) {
+    c.classList.toggle('erro', !okv);
+    const m = $('.msgerro', c); if (m) m.remove();
+    if (!okv) c.insertAdjacentHTML('beforeend', '<span class="msgerro">' + ic('circle-xmark') + ' ' + esc(CHECKS[k].msg) + '</span>');
+  }
+  return okv;
+}
+
+/* =================== painel lateral =================== */
+function abrirPainel(p) { PAINEL = p; A = {}; renderPainel(true); }
+function fecharPainel() { PAINEL = null; A = {}; $('#painelRaiz').innerHTML = ''; }
+function renderPainel(novo) {
+  let corpo = '';
+  if (PAINEL.tipo === 'op') {
+    const o = DB.operacoes.find(x => x.n === PAINEL.n);
+    if (!o) { fecharPainel(); return; }
+    corpo = painelOp(o);
+  } else if (PAINEL.tipo === 'pessoa') corpo = painelPessoa();
+  else if (PAINEL.tipo === 'tipo') corpo = painelTipo();
+  const scroll = $('#painelRaiz .pb') ? $('#painelRaiz .pb').scrollTop : 0;
+  $('#painelRaiz').className = novo ? 'novo' : '';
+  $('#painelRaiz').innerHTML = '<div class="fundo" data-a="fecharPainel"></div><aside class="painel" role="dialog" aria-modal="true">' + corpo + '</aside>';
+  const pb = $('#painelRaiz .pb'); if (pb) pb.scrollTop = scroll;
+}
+const cab = (nro, titulo, tags) => '<div class="ph"><button type="button" class="ibtn x" data-a="fecharPainel" aria-label="Fechar" title="Fechar">' + ic('xmark') + '</button>' +
+  (nro ? '<div class="nro">' + nro + '</div>' : '') + '<h2>' + titulo + '</h2><div class="row" style="gap:6px">' + (tags || '') + '</div></div>';
+const dl = itens => '<dl class="dl">' + itens.filter(Boolean).map(x => '<div' + (x[2] ? ' class="full"' : '') + '><dt>' + esc(x[0]) + '</dt><dd>' + (x[3] ? x[1] : esc(x[1] === '' || x[1] == null ? '\u2013' : x[1])) + '</dd></div>').join('') + '</dl>';
+
+function linhaTempo(o) {
+  const atual = ETAPA_DO_STATUS[o.status];
+  const env = (o.historico || []).filter(h => /enviou para an/.test(h.acao)).slice(-1)[0];
+  const info = [
+    env ? 'Enviada por ' + env.por + ' em ' + env.em : 'Cadastrada por ' + (o.solicitante || '') + ' em ' + o.criado,
+    o.analise && o.analise.recomendacao ? o.analise.recomendacao + ' ' + PT + ' ' + o.analise.por + ' em ' + o.analise.em : '',
+    o.gerente && o.gerente.voto ? 'Voto ' + o.gerente.voto.toLowerCase() + ' ' + PT + ' IAP ' + String(o.gerente.iap).replace('.', ',') + ' ' + PT + ' ' + o.gerente.por : '',
+    o.diretoria && o.diretoria.decisao ? o.diretoria.decisao + ' por ' + o.diretoria.por + ' em ' + o.diretoria.em : '',
+    o.liberacao && o.liberacao.data ? 'Liberada em ' + o.liberacao.data + ' por ' + o.liberacao.por : ''
+  ];
+  const ult = (o.historico || []).slice(-1)[0];
+  let nota = '', notaNo = false;
+  if (ult && /^devolveu/.test(ult.acao)) { nota = 'Devolvida por ' + ult.por + ' (' + ult.em + '): ' + ult.obs; notaNo = true; }
+  else nota = proximo(o);
+  if (o.status === 'Reprovada') { nota = 'Reprovada: ' + ((o.diretoria && o.diretoria.texto) || ''); notaNo = true; }
+  let parou = -1;
+  if (o.status === 'Cancelada') {
+    const c = (o.historico || []).filter(h => h.acao === 'cancelou').slice(-1)[0];
+    parou = Math.max(0, info.filter(Boolean).length - 1);
+    nota = 'Cancelada' + (c ? ' por ' + c.por + ' em ' + c.em + ': ' + c.obs : '');
+    notaNo = true;
+  }
+  return '<div class="tl">' + ETAPAS.map((e, i) => {
+    let cl = '', bol = i + 1;
+    if (o.status === 'Cancelada') { cl = i < parou ? 'feito' : i === parou ? 'parou' : ''; bol = i < parou ? ic('check') : i === parou ? ic('xmark') : i + 1; }
+    else if (o.status === 'Reprovada' && i === 3) { cl = 'falhou'; bol = ic('xmark'); }
+    else if (i < atual) { cl = 'feito'; bol = ic('check'); }
+    else if (i === atual) cl = 'atual';
+    const eAtual = (o.status === 'Cancelada' && i === parou) || (o.status !== 'Cancelada' && (i === atual || (o.status === 'Reprovada' && i === 3)));
+    return '<div class="et ' + cl + '"><span class="b">' + bol + '</span><div class="t"><b>' + e.nome + '</b><small>' + esc(info[i] || e.sub) + '</small>' +
+      (eAtual && nota ? '<div class="nota' + (notaNo ? ' no' : '') + '">' + esc(nota) + '</div>' : '') + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function painelOp(o) {
+  const L = DB.listas, d = o.dados || {};
+  let h = cab(NRO + ' ' + o.n + (o.numero_operacao ? ' ' + PT + ' Mesa ' + esc(o.numero_operacao) : ''), esc(o.cooperado),
+    tag(o.status) + '<span class="tag plain">' + esc(labelAg(o.agencia)) + '</span><span class="tag plain">' + brl(o.valor) + '</span>');
+  h += '<div class="pb">';
+  h += '<div class="bloco"><span class="cap">Etapas</span>' + linhaTempo(o) + '</div>';
+  h += blocoAcao(o);
+  h += '<div class="bloco"><span class="cap">Cooperado e operação</span>' + dl([
+    ['Cooperado', o.cooperado], ['CPF/CNPJ', fmtDoc(o.documento)], ['Conta corrente', o.conta],
+    ['Número na mesa de negócios', o.numero_operacao], ['Modalidade', o.modalidade], ['Valor', brl(o.valor)],
+    ['Prazo', o.prazo ? o.prazo + ' meses' : ''], ['Agência', labelAg(o.agencia)], ['Atendente', o.solicitante], ['Cadastrada em', o.criado],
+    ['Finalidade', d.finalidade, true], d.observacao ? ['Observações', d.observacao, true] : null]) + '</div>';
+  h += '<div class="bloco"><span class="cap">Checklist da solicitação</span>' + L.checkSolicitacao.map(c =>
+    '<div class="ck">' + (o.checklist && o.checklist[c.id] ? '<span class="s">' + ic('circle-check') + '</span>' : '<span class="z">' + ic('circle-xmark') + '</span>') + esc(c.nome) + '</div>').join('') + '</div>';
+  h += '<div class="bloco"><span class="cap">Avalista e garantias</span>' +
+    '<div><b>Avalista:</b> ' + (d.tem_avalista === 'sim' ? (d.avalistas || []).map(a => esc(a.nome) + ' (' + esc(fmtDoc(a.documento)) + ')').join('; ') : d.tem_avalista === 'não' ? 'Não possui' : '\u2013') + '</div>' +
+    '<div style="margin-top:6px"><b>Garantias:</b> ' + (d.tem_garantia === 'sim' ? (d.garantias || []).map(g => esc(g.tipo) + ': ' + esc(g.descricao) + (g.valor ? ' ' + PT + ' ' + brl(g.valor) : '')).join('; ') : d.tem_garantia === 'não' ? 'Não possui' : '\u2013') + '</div></div>';
+  if (o.analise && o.analise.recomendacao) {
+    const an = o.analise;
+    h += '<div class="bloco"><span class="cap">Análise</span>' + L.checkAnalise.map(c => {
+      const v = an.itens && an.itens[c.id];
+      return '<div class="ck">' + (v === 'ok' ? '<span class="s">' + ic('circle-check') + '</span>' : '<span class="n">' + ic('circle-xmark') + '</span>') + esc(c.nome) + ' ' + (v === 'ok' ? '<span class="tag ok">Ok</span>' : '<span class="tag no">Não ok</span>') + '</div>';
+    }).join('') +
+      '<div class="row" style="margin-top:8px">' + '<span class="tag ' + (an.recomendacao === 'Desfavorável' ? 'no' : an.recomendacao === 'Favorável' ? 'ok' : 'wait') + '">' + esc(an.recomendacao) + '</span>' + (an.risco ? '<span class="tag plain">Risco ' + esc(an.risco) + '</span>' : '') + '</div>' +
+      '<div class="texto">' + esc(an.parecer) + '</div><div class="por">' + esc(an.por) + ' ' + PT + ' ' + esc(an.em) + '</div></div>';
+  }
+  if (o.gerente && o.gerente.voto) {
+    const g = o.gerente;
+    h += '<div class="bloco"><span class="cap">Gerente</span><div class="row"><span class="tag plain">IAP ' + esc(String(g.iap).replace('.', ',')) + '</span><span class="tag ' + (g.voto === 'Favorável' ? 'ok' : 'no') + '">Voto ' + esc(g.voto.toLowerCase()) + '</span></div>' +
+      (g.parecer ? '<div class="texto">' + esc(g.parecer) + '</div>' : '') + '<div class="por">' + esc(g.por) + ' ' + PT + ' ' + esc(g.em) + '</div></div>';
+  }
+  if (o.diretoria && o.diretoria.decisao) {
+    const x = o.diretoria;
+    h += '<div class="bloco"><span class="cap">Diretoria</span>' + tag(x.decisao) + (x.texto ? '<div class="texto">' + esc(x.texto) + '</div>' : '') + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
+  }
+  if (o.liberacao && o.liberacao.data) {
+    const x = o.liberacao;
+    h += '<div class="bloco"><span class="cap">Liberação</span>' + dl([['Data da liberação', x.data], ['Contrato', x.contrato], x.obs ? ['Observação', x.obs, true] : null]) + '<div class="por">' + esc(x.por) + ' ' + PT + ' ' + esc(x.em) + '</div></div>';
+  }
+  h += '<div class="bloco"><span class="cap">Histórico</span><div class="hist">' + (o.historico || []).slice().reverse().map(x =>
+    '<div class="h"><span class="q">' + esc(x.em) + '</span><span><b>' + esc(x.por) + '</b> ' + esc(x.acao) + (x.obs ? '<div class="obs">' + esc(x.obs) + '</div>' : '') + '</span></div>').join('') + '</div></div>';
+  h += '</div>';
+  const pf = [];
+  if (o.excluir) pf.push('<button type="button" class="btn btn-ghost" data-a="excluirOp" data-n="' + o.n + '" data-trava>' + ic('trash') + ' Excluir</button>');
+  if (o.cancelar) pf.push('<button type="button" class="btn btn-ghost" data-a="cancelarOp" data-n="' + o.n + '">' + ic('xmark') + ' Cancelar operação</button>');
+  if (o.reativar) pf.push('<button type="button" class="btn btn-outline" data-a="reativarOp" data-n="' + o.n + '" data-trava>' + ic('rotate-right') + ' Reativar</button>');
+  if (o.editar) {
+    pf.push('<button type="button" class="btn btn-outline" data-a="corrigirOp" data-n="' + o.n + '">' + ic('pen') + ' Corrigir</button>');
+    pf.push('<button type="button" class="btn btn-primary" data-a="enviarOp" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Enviar para análise</button>');
+  }
+  if (pf.length) h += '<div class="pf">' + pf.join('') + '</div>';
+  return h;
+}
+
+/* bloco de ação conforme quem está olhando (o servidor decide; a tela só mostra) */
+function blocoAcao(o) {
+  const L = DB.listas;
+  const area = (k, rot, ph, ob) => '<div class="campo" style="margin-top:10px"><label for="a_' + k + '">' + rot + (ob ? ' <span class="ob">*</span>' : '') + '</label><textarea class="in" id="a_' + k + '" data-ak="' + k + '" maxlength="4000" placeholder="' + esc(ph || '') + '">' + esc(A[k] || '') + '</textarea></div>';
+  const chips = (k, lista, nok) => '<div class="row" style="gap:6px">' + lista.map(x => '<button type="button" class="chip' + (nok && nok(x) ? ' nok' : '') + '" data-a="aset" data-k="' + k + '" data-v="' + esc(x) + '" aria-pressed="' + (A[k] === x) + '">' + esc(x) + '</button>').join('') + '</div>';
+  if (o.analisar) {
+    A.itens = A.itens || {};
+    return '<div class="bloco acao"><span class="cap">' + ic('list-check') + ' Sua análise</span>' +
+      L.checkAnalise.map(c => '<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>' + esc(c.nome) + ' <span class="ob" style="color:var(--danger)">*</span></span><span class="row" style="gap:6px">' +
+        '<button type="button" class="chip" data-a="aitem" data-k="' + c.id + '" data-v="ok" aria-pressed="' + (A.itens[c.id] === 'ok') + '">' + ic('check') + ' Ok</button>' +
+        '<button type="button" class="chip nok" data-a="aitem" data-k="' + c.id + '" data-v="nok" aria-pressed="' + (A.itens[c.id] === 'nok') + '">' + ic('xmark') + ' Não ok</button></span></div>').join('') +
+      '<div class="grid2" style="margin-top:10px"><div class="campo"><label for="a_risco">Nível de risco</label><select class="in" id="a_risco" data-ak="risco"><option value="">Sem classificação</option>' + L.riscos.map(r => '<option' + (A.risco === r ? ' selected' : '') + '>' + r + '</option>').join('') + '</select></div>' +
+      '<div class="campo"><span class="lb">Recomendação <span class="ob">*</span></span>' + chips('recomendacao', L.recomendacoes, x => x === 'Desfavorável') + '</div></div>' +
+      area('parecer', 'Parecer da análise', 'Resumo da análise. Para devolver ao atendente, escreva aqui o que ele precisa corrigir.', true) +
+      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-outline" data-a="analisePend" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver ao atendente</button>' +
+      '<button type="button" class="btn btn-primary" data-a="analiseOk" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Concluir análise</button></div></div>';
+  }
+  if (o.votar) {
+    return '<div class="bloco acao"><span class="cap">' + ic('user-gear') + ' IAP e voto do gerente</span><div class="grid2">' +
+      '<div class="campo"><label for="a_iap">IAP <span class="ob">*</span></label><input class="in" id="a_iap" data-ak="iap" data-mask="dec" inputmode="decimal" value="' + esc(A.iap || '') + '" placeholder="Ex.: 2,5"></div>' +
+      '<div class="campo"><span class="lb">Seu voto <span class="ob">*</span></span>' + chips('voto', L.votos, x => x === 'Desfavorável') + '</div></div>' +
+      area('parecer', 'Parecer do gerente', 'Obrigatório para voto desfavorável ou para devolver', false) +
+      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-outline" data-a="gerDevolver" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver para a análise</button>' +
+      '<button type="button" class="btn btn-primary" data-a="gerEnviar" data-n="' + o.n + '" data-trava>' + ic('paper-plane') + ' Votar e enviar à diretoria</button></div></div>';
+  }
+  if (o.decidir) {
+    return '<div class="bloco acao"><span class="cap">' + ic('building-columns') + ' Decisão da diretoria</span>' +
+      area('texto', 'Parecer da diretoria', 'Obrigatório para reprovar ou devolver', false) +
+      '<div class="row" style="justify-content:flex-end;margin-top:12px">' +
+      '<button type="button" class="btn btn-danger" data-a="dirDecide" data-v="reprovar" data-n="' + o.n + '" data-trava>' + ic('circle-xmark') + ' Reprovar</button>' +
+      '<button type="button" class="btn btn-outline" data-a="dirDecide" data-v="devolver" data-n="' + o.n + '" data-trava>' + ic('arrow-left') + ' Devolver ao gerente</button>' +
+      '<button type="button" class="btn btn-primary" data-a="dirDecide" data-v="aprovar" data-n="' + o.n + '" data-trava>' + ic('circle-check') + ' Aprovar</button></div></div>';
+  }
+  if (o.liberar) {
+    if (A.data == null) A.data = hoje();
+    return '<div class="bloco acao"><span class="cap">' + ic('circle-check') + ' Liberação</span><div class="grid2">' +
+      '<div class="campo"><label for="a_data">Data da liberação <span class="ob">*</span></label><input class="in" id="a_data" data-ak="data" data-mask="data" data-check="data" inputmode="numeric" value="' + esc(A.data) + '" placeholder="dd/mm/aaaa"></div>' +
+      '<div class="campo"><label for="a_contrato">Número do contrato</label><input class="in" id="a_contrato" data-ak="contrato" maxlength="40" value="' + esc(A.contrato || '') + '"></div></div>' +
+      '<div class="campo" style="margin-top:10px"><label for="a_obs">Observação</label><textarea class="in" id="a_obs" data-ak="obs" maxlength="1000">' + esc(A.obs || '') + '</textarea></div>' +
+      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-primary" data-a="liberarOp" data-n="' + o.n + '" data-trava>' + ic('circle-check') + ' Registrar liberação</button></div></div>';
+  }
+  if (A.cancelando && o.cancelar) {
+    return '<div class="bloco acao"><span class="cap">' + ic('triangle-exclamation') + ' Cancelar a operação</span>' + area('motivo', 'Motivo do cancelamento', 'Ex.: cooperado desistiu', true) +
+      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-ghost" data-a="cancelarNao">Voltar</button><button type="button" class="btn btn-danger" data-a="cancelarSim" data-n="' + o.n + '" data-trava>' + ic('xmark') + ' Confirmar cancelamento</button></div></div>';
+  }
+  return '';
+}
+
+/* =================== usuários =================== */
+function telaUsuarios() {
+  const e = DB.eu;
+  let h = '<div class="stack"><div class="row"><button type="button" class="chip" data-a="vistaU" data-id="pessoas" aria-pressed="' + (UI.vistaU === 'pessoas') + '">' + ic('user-group') + ' Pessoas</button>' +
+    '<button type="button" class="chip" data-a="vistaU" data-id="tipos" aria-pressed="' + (UI.vistaU === 'tipos') + '">' + ic('id-badge') + ' Tipos de usuário</button></div>';
+  if (UI.vistaU === 'pessoas') {
+    const q = UI.buscaP.trim().toLowerCase();
+    const l = DB.pessoas.filter(p => (!UI.agP || p.agencia === UI.agP) && (!q || p.nome.toLowerCase().indexOf(q) >= 0 || p.email.indexOf(q) >= 0));
+    h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaP" placeholder="Buscar por nome ou e-mail' + RET + '" value="' + esc(UI.buscaP) + '"></div>';
+    if (e.ve.length > 1) h += '<select class="in" id="agP" style="width:auto" aria-label="Agência"><option value="">Todas as agências</option>' + e.ve.map(a => '<option value="' + a + '"' + (UI.agP === a ? ' selected' : '') + '>' + esc(labelAg(a)) + '</option>').join('') + '</select>';
+    h += '<button type="button" class="btn btn-primary" data-a="novaPessoa">' + ic('plus') + ' Cadastrar pessoa</button></div>';
+    h += l.length ? '<div class="lista">' + l.map(p => '<button type="button" class="item pessoa' + (p.ativo ? '' : ' off') + '" data-a="abrirPessoa" data-email="' + esc(p.email) + '"><span class="av">' + esc(iniciais(p.nome)) + '</span>' +
+      '<span class="mid"><b>' + esc(p.nome) + (p.eu ? ' <span class="muted small">(você)</span>' : '') + '</b><span class="sub">' + esc(p.email) + '</span></span>' +
+      '<span class="row" style="gap:6px"><span class="tag plain">' + esc(labelAg(p.agencia) + ' ' + PT + ' ' + nomePerfil(p.perfil)) + '</span>' + (p.acessos.length ? '<span class="selo" title="Outros acessos">+' + p.acessos.length + '</span>' : '') + (p.ativo ? '' : '<span class="tag no">Desativado</span>') + '</span></button>').join('') + '</div>'
+      : '<div class="vazio">Nenhuma pessoa encontrada.</div>';
+  } else {
+    const pode = e.matriz;
+    h += '<div class="row" style="justify-content:space-between"><span class="muted">' + (pode ? 'Os tipos usuário, admin e dev são fixos: só a descrição muda.' : 'Só quem gerencia na Matriz cria ou altera tipos.') + '</span>' +
+      (pode ? '<button type="button" class="btn btn-primary" data-a="novoTipo">' + ic('plus') + ' Novo tipo</button>' : '') + '</div>';
+    h += '<div class="tipos">' + DB.perfis.map(p => '<button type="button" class="tipo" data-a="abrirTipo" data-p="' + esc(p.perfil) + '"' + (pode ? '' : ' disabled') + '><span class="ic">' + ic(p.tecnico ? 'code' : p.gerencia ? 'user-gear' : 'id-badge') + '</span><span><b>' + esc(p.nome) + '</b>' + (p.fixo ? ' <span class="muted small">(fixo)</span>' : '') + '<small>' + esc(p.descricao) + '</small><span class="perms">' + permTags(p) + '</span></span></button>').join('') + '</div>';
+  }
+  return h + '</div>';
+}
+const NOMES_PERM = { solicita: 'Solicita', analisa: 'Analisa', vota: 'Vota (gerente)', aprova: 'Aprova', libera: 'Libera', gerencia: 'Gerencia', tecnico: 'Técnico' };
+const permTags = p => Object.keys(NOMES_PERM).filter(k => p[k]).map(k => '<span class="tag plain">' + NOMES_PERM[k] + '</span>').join('');
+
+function painelPessoa() {
+  const P = PAINEL.f, e = DB.eu, tipos = DB.perfis;
+  const proprio = PAINEL.orig && PAINEL.orig === e.email;
+  const travaAcesso = proprio && !e.tecnico;
+  let h = cab('', PAINEL.orig ? esc(P.nome || 'Pessoa') : 'Cadastrar pessoa', PAINEL.orig ? '<span class="tag plain">' + esc(PAINEL.orig) + '</span>' : '');
+  h += '<div class="pb"><div class="bloco"><div class="grid2">' +
+    '<div class="campo"><label for="p_nome">Nome <span class="ob">*</span></label><input class="in" id="p_nome" data-pf="nome" maxlength="120" value="' + esc(P.nome) + '"></div>' +
+    '<div class="campo"><label for="p_email">E-mail <span class="ob">*</span></label><input class="in" id="p_email" data-pf="email" maxlength="120" value="' + esc(P.email) + '"' + (proprio ? ' disabled title="Você não pode mudar o seu próprio e-mail"' : '') + '></div>' +
+    '<label class="chave full"><input type="checkbox" data-pf="ativo"' + (P.ativo ? ' checked' : '') + (proprio ? ' disabled' : '') + '><span class="sw"></span><span><b>Ativo</b> <span class="muted small">Desativado não entra, mas continua cadastrado</span></span></label></div></div>';
+  h += '<div class="bloco"><span class="cap">Agência</span><div class="row">' + e.ve.map(a => '<button type="button" class="chip" data-a="pset" data-k="agencia" data-v="' + a + '" aria-pressed="' + (P.agencia === a) + '"' + (travaAcesso ? ' disabled' : '') + '>' + ic('building-columns') + ' ' + esc(labelAg(a)) + '</button>').join('') + '</div></div>';
+  h += '<div class="bloco"><span class="cap">Tipo de usuário</span><div class="tipos">' + tipos.map(t => {
+    const bloq = travaAcesso || (t.tecnico && !e.tecnico);
+    return '<button type="button" class="tipo" data-a="pset" data-k="perfil" data-v="' + esc(t.perfil) + '" aria-pressed="' + (P.perfil === t.perfil) + '"' + (bloq ? ' disabled' : '') + '><span class="ic">' + ic(t.tecnico ? 'code' : t.gerencia ? 'user-gear' : 'user') + '</span><span><b>' + esc(t.nome) + '</b><small>' + esc(t.descricao) + '</small></span></button>';
+  }).join('') + '</div></div>';
+  h += '<div class="bloco acessos"><span class="cap">' + ic('key') + ' Outros acessos</span>' +
+    (P.acessos.length ? P.acessos.map((a, i) => '<div class="ac"><span>' + esc(labelAg(a.agencia) + ' ' + PT + ' ' + nomePerfil(a.perfil)) + '</span>' +
+      ((travaAcesso || e.ve.indexOf(a.agencia) < 0 || ((DB.perfis.find(t => t.perfil === a.perfil) || {}).tecnico && !e.tecnico)) ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-a="pdelAc" data-i="' + i + '">' + ic('trash') + ' Remover</button>') + '</div>').join('') : '<div class="muted small" style="margin-bottom:8px">Nenhum outro acesso.</div>') +
+    (travaAcesso ? '<div class="muted small">Só um dev muda os próprios acessos.</div>' :
+      '<div class="row"><select class="in" id="p_acAg" style="flex:1;min-width:120px" aria-label="Agência">' + e.ve.map(a => '<option value="' + a + '">' + esc(labelAg(a)) + '</option>').join('') + '</select>' +
+      '<select class="in" id="p_acPf" style="flex:1;min-width:120px" aria-label="Tipo">' + tipos.filter(t => !t.tecnico || e.tecnico).map(t => '<option value="' + esc(t.perfil) + '">' + esc(t.nome) + '</option>').join('') + '</select>' +
+      '<button type="button" class="btn btn-outline" data-a="paddAc">' + ic('plus') + ' Adicionar acesso</button></div>') + '</div>';
+  h += '</div><div class="pf">';
+  if (PAINEL.orig && !proprio) h += '<button type="button" class="btn btn-ghost" data-a="excluirPessoa" data-trava>' + ic('trash') + ' Excluir</button><span class="grow"></span>';
+  h += '<button type="button" class="btn btn-ghost" data-a="fecharPainel">Descartar mudanças</button><button type="button" class="btn btn-primary" data-a="salvarPessoa" data-trava>' + ic('floppy-disk') + ' Salvar</button></div>';
+  return h;
+}
+
+function painelTipo() {
+  const T = PAINEL.f, e = DB.eu;
+  const fixo = !PAINEL.novo && (DB.perfis.find(p => p.perfil === T.perfil) || {}).fixo;
+  const bloq = fixo || (T.tecnicoOrig && !e.tecnico);
+  let h = cab('', PAINEL.novo ? 'Novo tipo de usuário' : esc(nomePerfil(T.perfil)), fixo ? '<span class="tag plain">Fixo</span>' : '');
+  h += '<div class="pb"><div class="bloco"><div class="grid2">' +
+    '<div class="campo"><label for="t_nome">Nome do tipo <span class="ob">*</span></label><input class="in" id="t_nome" data-tf="perfil" maxlength="30" value="' + esc(T.perfil) + '"' + (PAINEL.novo ? ' placeholder="Ex.: comite_local"' : ' disabled') + '>' + (PAINEL.novo ? '<span class="muted small">Depois de criado, o nome não muda.</span>' : '') + '</div>' +
+    '<div class="campo"><label for="t_desc">Descrição</label><input class="in" id="t_desc" data-tf="descricao" maxlength="200" value="' + esc(T.descricao) + '"></div></div></div>';
+  const linha = (k, nome, desc, dis) => '<label class="chave" style="padding:8px 0;border-bottom:1px solid var(--border)"><input type="checkbox" data-tp="' + k + '"' + (T[k] ? ' checked' : '') + (dis ? ' disabled' : '') + '><span class="sw"></span><span><b>' + nome + '</b><small class="muted" style="display:block">' + desc + '</small></span></label>';
+  h += '<div class="bloco"><span class="cap">O que este tipo faz</span>' +
+    Object.keys(DB.permInfo).map(k => linha(k, NOMES_PERM[k], esc(DB.permInfo[k]), bloq)).join('') +
+    linha('gerencia', 'Gerencia', 'Cadastra pessoas, tipos e links (seguindo a regra da Matriz)', bloq) +
+    (e.tecnico ? linha('tecnico', 'Técnico', 'Vê os links da planilha e do código. Só um dev dá este tipo.', bloq) : '') +
+    (fixo ? '<div class="muted small" style="margin-top:8px">Tipo fixo: só a descrição muda.</div>' : '') + '</div>';
+  h += '</div><div class="pf">';
+  if (!PAINEL.novo && !fixo) h += '<button type="button" class="btn btn-ghost" data-a="excluirTipo" data-trava>' + ic('trash') + ' Excluir</button><span class="grow"></span>';
+  h += '<button type="button" class="btn btn-ghost" data-a="fecharPainel">Descartar mudanças</button><button type="button" class="btn btn-primary" data-a="salvarTipo" data-trava>' + ic('floppy-disk') + ' Salvar</button></div>';
+  return h;
+}
+
+/* =================== links =================== */
+const linkOk = v => /^https:[\/]{2}[^\s"'<>]+$/i.test(String(v || '').trim());
+function telaGerenciar() {
+  if (!LINKS) LINKS = { linkLogo: DB.linkLogo || '', atalhos: DB.atalhos.map(a => Object.assign({}, a)), mexeu: false };
+  const L = LINKS;
+  const erroLogo = L.linkLogo.trim() && !linkOk(L.linkLogo);
+  let h = '<div class="stack"><h2 class="tit">Links</h2>';
+  h += '<div class="card"><h3>' + ic('building-columns') + ' Logo do topo</h3><p class="muted small" style="margin:4px 0 10px">Endereço aberto ao clicar na logo CrediBrás. Em branco, a logo não leva a lugar nenhum.</p>' +
+    '<div class="campo' + (erroLogo ? ' erro' : '') + '"><input class="in" data-lk="logo" value="' + esc(L.linkLogo) + '" placeholder="https:&#47;&#47;' + RET + '" aria-label="Link da logo">' + (erroLogo ? '<span class="msgerro">' + ic('circle-xmark') + ' Use um endereço que comece com https:&#47;&#47;</span>' : '') + '</div></div>';
+  h += '<div class="card"><h3>' + ic('book-open') + ' Links e guias</h3><p class="muted small" style="margin:4px 0 10px">Aparecem para todo mundo ao clicar no nome do sistema, no topo.</p>';
+  h += L.atalhos.map((a, i) => {
+    const eN = !String(a.nome).trim(), eL = !linkOk(a.link);
+    return '<div class="linha"><div class="grid2">' +
+      '<div class="campo' + (eN ? ' erro' : '') + '"><label>Nome</label><input class="in" data-lk="nome" data-i="' + i + '" maxlength="80" value="' + esc(a.nome) + '"></div>' +
+      '<div class="campo' + (eL ? ' erro' : '') + '"><label>Endereço (https)</label><input class="in" data-lk="link" data-i="' + i + '" value="' + esc(a.link) + '"></div>' +
+      '<div class="campo full"><label>Descrição curta (opcional)</label><input class="in" data-lk="descricao" data-i="' + i + '" maxlength="120" value="' + esc(a.descricao) + '"></div></div>' +
+      '<div class="row" style="justify-content:flex-end;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-a="lkMove" data-i="' + i + '" data-d="-1"' + (i ? '' : ' disabled') + ' aria-label="Subir" title="Subir">' + ic('arrow-up') + '</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-a="lkMove" data-i="' + i + '" data-d="1"' + (i < L.atalhos.length - 1 ? '' : ' disabled') + ' aria-label="Descer" title="Descer">' + ic('arrow-down') + '</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-a="lkDel" data-i="' + i + '">' + ic('trash') + ' Remover</button></div></div>';
+  }).join('');
+  h += (L.atalhos.length < 30 ? '<button type="button" class="btn btn-outline btn-sm" data-a="lkAdd">' + ic('plus') + ' Adicionar link</button>' : '') + '</div>';
+  h += '<div class="form-acoes"><button type="button" class="btn btn-ghost" data-a="lkDescartar"' + (L.mexeu ? '' : ' disabled') + '>Descartar mudanças</button><button type="button" class="btn btn-primary" data-a="lkSalvar" data-trava>' + ic('floppy-disk') + ' Salvar links</button></div>';
+  return h + '</div>';
+}
+
+/* =================== popup e toast =================== */
+function popup(o) {
+  const cores = { ok: 'var(--g2)', warn: 'var(--warn)', erro: '#f19a9a' };
+  const icones = { ok: 'check', warn: 'exclamation', erro: 'xmark' };
+  const t = o.tipo || 'ok';
+  const raiz = $('#popRaiz');
+  raiz.innerHTML = '<div class="pop-fundo" data-a="fecharPop"><div class="pop" role="dialog" aria-modal="true" style="--cor:' + cores[t] + '">' +
+    '<div class="faixa"></div><button type="button" class="ibtn x" data-a="fecharPop" aria-label="Fechar" title="Fechar">' + ic('xmark') + '</button>' +
+    '<div class="circ"><span class="onda"></span><span class="onda b"></span><span class="ico">' + ic(icones[t]) + '</span></div>' +
+    '<div class="cont"><h2></h2><p></p>' +
+    (o.detalhes && o.detalhes.length ? '<div class="det">' + o.detalhes.map(d => '<div><span>' + esc(d[0]) + '</span><b>' + esc(d[1]) + '</b></div>').join('') + '</div>' : '<div></div>') +
+    '<div class="bts">' + (o.botoes || [{ txt: 'Entendi', cls: 'btn-primary' }]).map((b, i) => '<button type="button" class="btn ' + (b.cls || 'btn-outline') + '" data-a="popBtn" data-i="' + i + '">' + esc(b.txt) + '</button>').join('') + '</div></div></div></div>';
+  $('h2', raiz).textContent = o.titulo || '';
+  $('p', raiz).textContent = o.texto || '';
+  raiz._botoes = o.botoes || [{}];
+  if (t === 'ok') {
+    const pop = $('.pop', raiz), cs = ['#7cc242', '#f4c21b', '#0d6532', '#3b6cf0', '#d64545'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('span'); c.className = 'confete';
+      c.style.left = (35 + Math.random() * 30) + '%'; c.style.background = cs[i % cs.length];
+      c.style.setProperty('--dx', ((Math.random() - .5) * 320) + 'px'); c.style.animationDelay = (.4 + Math.random() * .3) + 's';
+      pop.appendChild(c);
+    }
+  }
+  setTimeout(() => { const b = $('.bts .btn', raiz); if (b) b.focus(); }, 50);
+}
+function closePopup() { $('#popRaiz').innerHTML = ''; }
+function popErro(msg) {
+  const vc = DB && DB.eu.verComo;
+  popup({ tipo: 'erro', titulo: /modo Ver como/.test(msg) ? 'Você está no modo Ver como' : 'Não deu certo', texto: msg,
+    botoes: vc ? [{ txt: 'Voltar ao meu acesso', cls: 'btn-primary', fn: () => acao('sairVerComo', []) }, { txt: 'Fechar' }] : [{ txt: 'Entendi', cls: 'btn-primary' }] });
+}
+let toastTimer = null;
+function toast(txt, acaoT) {
+  const r = $('#toastRaiz');
+  clearTimeout(toastTimer);
+  r.innerHTML = '<div class="toast" role="status"><span></span>' + (acaoT ? '<button type="button" data-a="toastAcao">' + esc(acaoT.txt) + '</button>' : '') + '</div>';
+  $('span', r).textContent = txt;
+  r._fn = acaoT && acaoT.fn;
+  toastTimer = setTimeout(() => { r.innerHTML = ''; }, 3500);
+}
+/* excluir com segundo clique */
+function segundoClique(btn) {
+  if (btn.classList.contains('confirmar')) return true;
+  const antes = btn.innerHTML;
+  btn.classList.add('confirmar');
+  btn.innerHTML = ic('trash') + ' Confirmar exclusão';
+  setTimeout(() => { if (btn.isConnected) { btn.classList.remove('confirmar'); btn.innerHTML = antes; } }, 4000);
+  return false;
+}
+
+/* =================== ações (cliques) =================== */
+const opDe = el => DB.operacoes.find(o => o.n === +el.getAttribute('data-n'));
+const ACOES = {
+  atualizar: () => { LINKS = null; carregar(); },
+  tema: () => {
+    const novo = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', novo);
+    try { localStorage.setItem('tema', novo); } catch (e) { /* sem armazenamento */ }
+  },
+  menu: el => { const m = el.getAttribute('data-m'); UI.menu = UI.menu === m ? '' : m; renderTopo(); },
+  trocar: el => { UI.menu = ''; acao('trocarAcesso', [el.getAttribute('data-k')], r => toast('Agora você está em ' + r.eu.acesso.label)); },
+  verComo: () => { const a = $('#vcAg').value, p = $('#vcPf').value; UI.menu = ''; acao('verComo', [a, p]); },
+  sairVC: () => acao('sairVerComo', []),
+  aba: el => { ABA = el.getAttribute('data-id'); UI.menu = ''; renderAbas(); renderConteudo(); window.scrollTo(0, 0); },
+  filtro: el => { UI.filtro = el.getAttribute('data-id'); renderConteudo(); },
+  novaOp: () => { F = formVazio(); FALTA = []; ABA = 'nova'; renderAbas(); renderConteudo(); },
+  abrirOp: el => abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n') }),
+  fecharPainel: () => fecharPainel(),
+
+  /* formulário */
+  fset: el => { setPath(F, el.getAttribute('data-p'), el.getAttribute('data-v')); limpaFalta(el.getAttribute('data-p')); renderConteudo(); },
+  fadd: el => { const l = getPath(F, el.getAttribute('data-p')); l.push(/garantias/.test(el.getAttribute('data-p')) ? { tipo: '', descricao: '', valor: '' } : { nome: '', documento: '' }); renderConteudo(); },
+  fdel: el => { getPath(F, el.getAttribute('data-p')).splice(+el.getAttribute('data-i'), 1); FALTA = []; renderConteudo(); },
+  descartarForm: () => { F = formVazio(); FALTA = []; renderAbas(); renderConteudo(); toast('Formulário limpo'); },
+  salvarForm: () => {
+    if (!F.cooperado.trim()) { FALTA = ['cooperado']; renderConteudo(); popup({ tipo: 'warn', titulo: 'Falta o nome do cooperado', texto: 'Preencha pelo menos o nome do cooperado para salvar o rascunho.' }); focaFalta(); return; }
+    if (F.documento && !docOk(F.documento)) { FALTA = ['documento']; renderConteudo(); popup({ tipo: 'warn', titulo: 'CPF ou CNPJ inválido', texto: 'Confira os números do CPF ou CNPJ do cooperado.' }); focaFalta(); return; }
+    acao('salvarOperacao', [dadosForm(false)], r => {
+      const o = r.operacoes.find(x => x.n === r.ultimo);
+      if (o) F = formDe(o);
+      FALTA = []; renderAbas(); renderConteudo();
+      toast('Rascunho salvo ' + PT + ' ' + NRO + ' ' + r.ultimo);
+    });
+  },
+  enviarForm: () => {
+    const f = faltaForm();
+    FALTA = f.campos;
+    if (f.campos.length) {
+      renderConteudo();
+      popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Para enviar para análise, falta: ' + f.nomes.join(', ') + '.' });
+      focaFalta();
+      return;
+    }
+    acao('salvarOperacao', [dadosForm(true)], r => {
+      const o = r.operacoes.find(x => x.n === r.ultimo) || {};
+      F = formVazio(); FALTA = []; ABA = 'ops'; render();
+      popup({ tipo: 'ok', titulo: 'Enviada para análise', texto: 'A operação foi para o analista.', detalhes: [['Operação', NRO + ' ' + r.ultimo], ['Cooperado', o.cooperado || ''], ['Valor', brl(o.valor)], ['Mesa de negócios', o.numero_operacao || '']] });
+    });
+  },
+
+  /* painel da operação */
+  corrigirOp: el => { const o = opDe(el); F = formDe(o); FALTA = []; fecharPainel(); ABA = 'nova'; renderAbas(); renderConteudo(); window.scrollTo(0, 0); },
+  enviarOp: el => {
+    const o = opDe(el);
+    F = formDe(o); const f = faltaForm();
+    if (f.campos.length) { FALTA = f.campos; fecharPainel(); ABA = 'nova'; renderAbas(); renderConteudo(); popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Para enviar para análise, falta: ' + f.nomes.join(', ') + '.' }); return; }
+    F = formVazio();
+    acao('enviarAnalise', [o.n, o.rev], () => popup({ tipo: 'ok', titulo: 'Enviada para análise', texto: 'A operação foi para o analista.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado]] }));
+  },
+  aset: el => { A[el.getAttribute('data-k')] = el.getAttribute('data-v'); renderPainel(); },
+  aitem: el => { A.itens = A.itens || {}; A.itens[el.getAttribute('data-k')] = el.getAttribute('data-v'); renderPainel(); },
+  analiseOk: el => {
+    const o = opDe(el), falta = DB.listas.checkAnalise.filter(c => !(A.itens && A.itens[c.id])).map(c => c.nome);
+    if (!A.recomendacao) falta.push('recomendação');
+    if (!String(A.parecer || '').trim()) falta.push('parecer');
+    if (falta.length) return popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Para concluir a análise, falta: ' + falta.join(', ') + '.' });
+    acao('analisarOperacao', [o.n, { acao: 'concluir', itens: A.itens, risco: A.risco || '', recomendacao: A.recomendacao, parecer: A.parecer }, o.rev],
+      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Análise concluída', texto: 'A operação foi para o gerente incluir o IAP e votar.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Recomendação', A.recomendacao || '']] }); });
+  },
+  analisePend: el => {
+    const o = opDe(el);
+    if (!String(A.parecer || '').trim()) { popup({ tipo: 'warn', titulo: 'Escreva o que falta', texto: 'No campo Parecer, escreva o que o atendente precisa corrigir.' }); return; }
+    acao('analisarOperacao', [o.n, { acao: 'pendencia', parecer: A.parecer }, o.rev], () => { fecharPainel(); toast('Devolvida ao atendente ' + PT + ' ' + NRO + ' ' + o.n); });
+  },
+  gerEnviar: el => {
+    const o = opDe(el), falta = [];
+    if (!String(A.iap || '').trim()) falta.push('IAP');
+    if (!A.voto) falta.push('seu voto');
+    if (A.voto === 'Desfavorável' && !String(A.parecer || '').trim()) falta.push('parecer (obrigatório no voto desfavorável)');
+    if (falta.length) return popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Falta: ' + falta.join(', ') + '.' });
+    const voto = A.voto, iap = A.iap;
+    acao('votarGerente', [o.n, { acao: 'enviar', iap: iap, voto: voto, parecer: A.parecer || '' }, o.rev],
+      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Enviada à diretoria', texto: 'Seu voto foi registrado.', detalhes: [['Operação', NRO + ' ' + o.n], ['IAP', iap], ['Voto', voto]] }); });
+  },
+  gerDevolver: el => {
+    const o = opDe(el);
+    if (!String(A.parecer || '').trim()) return popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'No campo Parecer, escreva por que está devolvendo para a análise.' });
+    acao('votarGerente', [o.n, { acao: 'devolver', parecer: A.parecer }, o.rev], () => { fecharPainel(); toast('Devolvida para a análise ' + PT + ' ' + NRO + ' ' + o.n); });
+  },
+  dirDecide: el => {
+    const o = opDe(el), v = el.getAttribute('data-v');
+    if (v !== 'aprovar' && !String(A.texto || '').trim()) return popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Para ' + (v === 'reprovar' ? 'reprovar' : 'devolver ao gerente') + ', escreva o motivo no parecer.' });
+    acao('decidirDiretoria', [o.n, v, A.texto || '', o.rev], () => {
+      fecharPainel();
+      if (v === 'devolver') return toast('Devolvida ao gerente ' + PT + ' ' + NRO + ' ' + o.n);
+      popup({ tipo: v === 'aprovar' ? 'ok' : 'warn', titulo: v === 'aprovar' ? 'Operação aprovada' : 'Operação reprovada',
+        texto: v === 'aprovar' ? 'A agência já pode fazer a liberação.' : 'A operação foi encerrada.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)]] });
+    });
+  },
+  liberarOp: el => {
+    const o = opDe(el);
+    if (!dataOk(A.data)) return popup({ tipo: 'warn', titulo: 'Data inválida', texto: 'Informe a data da liberação no formato dd/mm/aaaa.' });
+    const data = A.data;
+    acao('liberarOperacao', [o.n, { data: data, contrato: A.contrato || '', obs: A.obs || '' }, o.rev],
+      () => { fecharPainel(); popup({ tipo: 'ok', titulo: 'Liberação registrada', texto: 'Operação concluída.', detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)], ['Data', data]] }); });
+  },
+  cancelarOp: () => { A.cancelando = true; renderPainel(); const t = $('#a_motivo'); if (t) t.focus(); },
+  cancelarNao: () => { A.cancelando = false; renderPainel(); },
+  cancelarSim: el => {
+    const o = opDe(el);
+    if (!String(A.motivo || '').trim()) return popup({ tipo: 'warn', titulo: 'Escreva o motivo', texto: 'Escreva o motivo do cancelamento.' });
+    acao('cancelarOperacao', [o.n, true, A.motivo, o.rev], () => { A = {}; toast('Operação cancelada', { txt: 'Desfazer', fn: () => { const x = DB.operacoes.find(y => y.n === o.n); acao('cancelarOperacao', [o.n, false, 'desfez o cancelamento', x ? x.rev : null]); } }); });
+  },
+  reativarOp: el => { const o = opDe(el); acao('cancelarOperacao', [o.n, false, '', o.rev], () => toast('Operação reativada como rascunho')); },
+  excluirOp: el => {
+    if (!segundoClique(el)) return;
+    const o = opDe(el);
+    acao('excluirOperacao', [o.n, o.rev], () => { fecharPainel(); toast('Item excluído', { txt: 'Desfazer', fn: () => acao('restaurarOperacao', [o.n]) }); });
+  },
+
+  /* pessoas */
+  vistaU: el => { UI.vistaU = el.getAttribute('data-id'); renderConteudo(); },
+  novaPessoa: () => abrirPainel({ tipo: 'pessoa', orig: '', f: { nome: '', email: '', ativo: true, agencia: DB.eu.agencia, perfil: 'usuario', acessos: [] } }),
+  abrirPessoa: el => {
+    const p = DB.pessoas.find(x => x.email === el.getAttribute('data-email'));
+    abrirPainel({ tipo: 'pessoa', orig: p.email, f: { nome: p.nome, email: p.email, ativo: p.ativo, agencia: p.agencia, perfil: p.perfil, acessos: p.acessos.map(a => Object.assign({}, a)) } });
+  },
+  pset: el => { PAINEL.f[el.getAttribute('data-k')] = el.getAttribute('data-v'); renderPainel(); },
+  paddAc: () => {
+    const a = { agencia: $('#p_acAg').value, perfil: $('#p_acPf').value }, P = PAINEL.f;
+    if ((a.agencia === P.agencia && a.perfil === P.perfil) || P.acessos.some(x => x.agencia === a.agencia && x.perfil === a.perfil)) return toast('Esta pessoa já tem esse acesso');
+    P.acessos.push(a); renderPainel();
+  },
+  pdelAc: el => { PAINEL.f.acessos.splice(+el.getAttribute('data-i'), 1); renderPainel(); },
+  salvarPessoa: () => {
+    const P = PAINEL.f;
+    if (!P.nome.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(P.email.trim())) return popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Preencha o nome e um e-mail válido.' });
+    const novo = !PAINEL.orig;
+    acao('salvarPessoa', [{ emailOriginal: PAINEL.orig, email: P.email, nome: P.nome, agencia: P.agencia, perfil: P.perfil, ativo: P.ativo, acessos: P.acessos }],
+      () => { fecharPainel(); popup({ tipo: 'ok', titulo: novo ? 'Pessoa cadastrada' : 'Pessoa salva', texto: '', detalhes: [['Nome', P.nome], ['E-mail', P.email.trim().toLowerCase()], ['Acesso', labelAg(P.agencia) + ' ' + PT + ' ' + nomePerfil(P.perfil)]] }); });
+  },
+  excluirPessoa: el => {
+    if (!segundoClique(el)) return;
+    const p = DB.pessoas.find(x => x.email === PAINEL.orig);
+    acao('excluirPessoa', [PAINEL.orig], () => {
+      fecharPainel();
+      toast('Item excluído', { txt: 'Desfazer', fn: () => acao('salvarPessoa', [{ email: p.email, nome: p.nome, agencia: p.agencia, perfil: p.perfil, ativo: p.ativo, acessos: p.acessos }]) });
+    });
+  },
+
+  /* tipos */
+  novoTipo: () => { const f = { perfil: '', descricao: '', gerencia: false, tecnico: false }; Object.keys(DB.permInfo).forEach(k => { f[k] = false; }); abrirPainel({ tipo: 'tipo', novo: true, f: f }); },
+  abrirTipo: el => { const p = DB.perfis.find(x => x.perfil === el.getAttribute('data-p')); abrirPainel({ tipo: 'tipo', novo: false, f: Object.assign({ tecnicoOrig: p.tecnico }, p) }); },
+  salvarTipo: () => {
+    const T = PAINEL.f, d = { novo: PAINEL.novo, perfil: T.perfil, descricao: T.descricao, gerencia: !!T.gerencia, tecnico: !!T.tecnico };
+    Object.keys(DB.permInfo).forEach(k => { d[k] = !!T[k]; });
+    if (!String(T.perfil).trim()) return popup({ tipo: 'warn', titulo: 'Falta o nome', texto: 'Dê um nome ao tipo de usuário.' });
+    acao('salvarTipo', [d], () => { fecharPainel(); toast('Tipo de usuário salvo'); });
+  },
+  excluirTipo: el => { if (!segundoClique(el)) return; const p = PAINEL.f.perfil; acao('excluirTipo', [p], () => { fecharPainel(); toast('Tipo excluído'); }); },
+
+  /* links */
+  lkAdd: () => { LINKS.atalhos.push({ nome: '', link: '', descricao: '' }); LINKS.mexeu = true; renderConteudo(); },
+  lkDel: el => { LINKS.atalhos.splice(+el.getAttribute('data-i'), 1); LINKS.mexeu = true; renderConteudo(); },
+  lkMove: el => { const i = +el.getAttribute('data-i'), j = i + +el.getAttribute('data-d'), l = LINKS.atalhos; const x = l[i]; l[i] = l[j]; l[j] = x; LINKS.mexeu = true; renderConteudo(); },
+  lkDescartar: () => { LINKS = null; renderConteudo(); toast('Mudanças descartadas'); },
+  lkSalvar: () => {
+    const L = LINKS;
+    const ruim = (L.linkLogo.trim() && !linkOk(L.linkLogo)) || L.atalhos.some(a => !String(a.nome).trim() || !linkOk(a.link));
+    if (ruim) { renderConteudo(); return popup({ tipo: 'warn', titulo: 'Confira os campos em vermelho', texto: 'Cada link precisa de nome e de um endereço que comece com https:\u002f\u002f' }); }
+    acao('salvarLinks', [{ linkLogo: L.linkLogo.trim(), atalhos: L.atalhos }], () => { LINKS = null; renderConteudo(); popup({ tipo: 'ok', titulo: 'Links salvos', texto: 'Os links já aparecem para todo mundo.' }); });
+  },
+
+  /* popup e toast */
+  fecharPop: (el, ev) => { if (ev.target === el || el.tagName === 'BUTTON') closePopup(); },
+  popBtn: el => { const b = ($('#popRaiz')._botoes || [])[+el.getAttribute('data-i')] || {}; closePopup(); if (b.fn) b.fn(); },
+  toastAcao: () => { const r = $('#toastRaiz'); const fn = r._fn; r.innerHTML = ''; if (fn) fn(); }
+};
+function limpaFalta(p) { const i = FALTA.indexOf(p); if (i >= 0) FALTA.splice(i, 1); }
+function focaFalta() { setTimeout(() => { const c = $('.campo.erro .in, .chk.erro input, [data-campo].erro'); if (c) { c.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (c.focus) c.focus({ preventScroll: true }); } }, 60); }
+
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-a]');
+  if (UI.menu && !ev.target.closest('.mwrap')) { UI.menu = ''; renderTopo(); }
+  if (!el || el.disabled) return;
+  const fn = ACOES[el.getAttribute('data-a')];
+  if (fn) fn(el, ev);
+});
+
+document.addEventListener('input', ev => {
+  const el = ev.target;
+  const m = el.getAttribute('data-mask');
+  if (m && MASK[m]) { const v = MASK[m](el.value); if (v !== el.value) el.value = v; }
+  const c = el.closest('.campo');
+  if (c && c.classList.contains('erro') && !el.hasAttribute('data-lk')) { c.classList.remove('erro'); const me = $('.msgerro', c); if (me) me.remove(); }
+  if (el.hasAttribute('data-f')) {
+    setPath(F, el.getAttribute('data-f'), el.value);
+    limpaFalta(el.getAttribute('data-f'));
+    el.classList.toggle('cheio', !!el.value);
+    atualizaContadores();
+  } else if (el.hasAttribute('data-ak')) A[el.getAttribute('data-ak')] = el.value;
+  else if (el.hasAttribute('data-pf')) PAINEL.f[el.getAttribute('data-pf')] = el.type === 'checkbox' ? el.checked : el.value;
+  else if (el.hasAttribute('data-tf')) PAINEL.f[el.getAttribute('data-tf')] = el.value;
+  else if (el.hasAttribute('data-lk')) {
+    const k = el.getAttribute('data-lk');
+    if (k === 'logo') LINKS.linkLogo = el.value; else LINKS.atalhos[+el.getAttribute('data-i')][k] = el.value;
+    LINKS.mexeu = true;
+    const b = $('[data-a="lkDescartar"]'); if (b) b.disabled = false;
+  } else if (el.id === 'buscaOps') { UI.busca = el.value; refazLista('#buscaOps'); }
+  else if (el.id === 'buscaP') { UI.buscaP = el.value; refazLista('#buscaP'); }
+});
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.hasAttribute('data-fc')) { F.checklist[el.getAttribute('data-fc')] = el.checked; limpaFalta('checklist.' + el.getAttribute('data-fc')); const l = el.closest('.chk'); if (l) l.classList.remove('erro'); atualizaContadores(); }
+  else if (el.hasAttribute('data-pf') && el.type === 'checkbox') PAINEL.f[el.getAttribute('data-pf')] = el.checked;
+  else if (el.hasAttribute('data-tp')) PAINEL.f[el.getAttribute('data-tp')] = el.checked;
+  else if (el.id === 'agOps') { UI.ag = el.value; renderConteudo(); }
+  else if (el.id === 'agP') { UI.agP = el.value; renderConteudo(); }
+  else if (el.hasAttribute('data-ak') && el.tagName === 'SELECT') A[el.getAttribute('data-ak')] = el.value;
+});
+document.addEventListener('focusout', ev => { if (ev.target.hasAttribute && ev.target.hasAttribute('data-check')) check(ev.target); });
+/* redesenha a lista sem perder o foco da busca */
+function refazLista(sel) {
+  const el = $(sel), pos = el ? el.selectionStart : 0;
+  renderConteudo();
+  const n = $(sel); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* ok */ } }
+}
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if ($('#popRaiz').innerHTML) closePopup();
+  else if (UI.menu) { UI.menu = ''; renderTopo(); }
+  else if (PAINEL) fecharPainel();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && DB && !OCUPADO && Date.now() - CARREGOU_EM > 60000 && !PAINEL && !(LINKS && LINKS.mexeu)) carregar();
+});
+
+/* =================== início =================== */
+try { if (localStorage.getItem('tema') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { /* sem armazenamento */ }
+carregar();
+</script>
+</body>
+</html>

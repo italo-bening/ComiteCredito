@@ -51,3 +51,17 @@ node testes/tela.test.js
 ```
 
 O teste da tela usa o Chromium do Playwright. Se o CDN do Font Awesome estiver bloqueado, aponte `FA_LOCAL` para um `all.min.js` 6.5.2 local.
+
+## Testar sem o Apps Script
+
+```bash
+node demo/montar.js
+```
+
+```bash
+cd demo && python3 -m http.server 8080
+```
+
+Abra `http://localhost:8080`. O `Code.gs` roda no próprio navegador com uma planilha simulada (guardada no navegador),
+já com pessoas e operações de exemplo. A faixa amarela embaixo, à esquerda, troca a pessoa conectada; **Recomeçar** volta
+aos dados de exemplo. Depois de mudar o `Code.gs` ou o `app.html`, rode `node demo/montar.js` de novo.
