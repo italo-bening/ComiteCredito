@@ -66,7 +66,8 @@
   --sh-float: 0 20px 50px -20px rgba(16, 60, 34, .35);
   --sh-card: 0 10px 30px -18px rgba(16, 40, 26, .28);
   --sh-hover: 0 6px 18px -8px rgba(0, 0, 0, .18);
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --active: var(--primary);
   --grad: radial-gradient(90% 260% at 85% 0%, color-mix(in srgb, var(--primary) 60%, #000) 0%, transparent 60%),
           linear-gradient(160deg, var(--primary-deep), color-mix(in srgb, var(--primary) 26%, #000));
 }
@@ -77,6 +78,7 @@
   --primary-soft: color-mix(in srgb, var(--primary) 20%, var(--card));
   --primary-line: color-mix(in srgb, var(--primary) 45%, var(--card));
   --glass-line: color-mix(in srgb, #fff 10%, transparent);
+  --active: var(--g2);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -86,36 +88,44 @@ body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font); -web
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-.wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+.wrap { width: 100%; max-width: 1140px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--primary-deep); }
 .num { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
 .cap { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- topo ---------- */
-header.top { position: sticky; top: 0; z-index: 40; }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; transition: box-shadow .3s; }
+header.top.scrolled { box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .45); }
 .topbar { position: relative; z-index: 3; color: #fff; background: var(--grad); border-bottom: 1px solid rgba(255, 255, 255, .14); }
-.topbar .wrap { display: flex; align-items: center; gap: 10px; min-height: 60px; }
-.logo { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--r-input); color: #fff; text-decoration: none; font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
-.logo svg { width: 24px; height: 26px; display: block; }
-.sis { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 0 0 12px; border: 0; border-left: 1px solid rgba(255, 255, 255, .25); background: none; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
-.sis[disabled] { cursor: default; }
-.sis .chev { color: var(--g2); font-size: 12px; }
-.grow { flex: 1; }
-.pill-ag { background: rgba(0, 0, 0, .45); border-radius: var(--pill); padding: 4px 10px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
-.devbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px dashed var(--g2); border-radius: var(--r-btn); color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; }
-.devbtn:hover { background: rgba(255, 255, 255, .08); }
+.topbar .wrap { display: flex; align-items: center; gap: 14px; padding-top: 10px; padding-bottom: 10px; }
+.hlogo { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 13px; border-radius: var(--r-input); background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .16); font-weight: 800; font-size: 17px; letter-spacing: -.02em; white-space: nowrap; color: #fff; text-decoration: none; transition: background .2s; }
+.hlogo[href]:hover { background: rgba(0, 0, 0, .35); }
+.hlogo svg { width: 22px; height: 22px; flex: none; }
+.brand-txt { display: flex; flex-direction: column; line-height: 1.2; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, .25); min-width: 0; }
+.brand-txt b { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; color: #fff; padding: 6px 8px; margin: -6px -8px; border-radius: var(--r-btn); font: inherit; text-align: left; min-width: 0; cursor: default; }
+.brand-btn.tem { cursor: pointer; }
+.brand-btn.tem:hover { background: rgba(255, 255, 255, .1); }
+.brand-btn .chev, .huser .chev { font-size: 10px; opacity: .75; }
+.h-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.hunit { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: var(--pill); background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .1); font-size: 11.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+.hbtn { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: var(--r-input); background: rgba(0, 0, 0, .4); border: 1px solid rgba(255, 255, 255, .12); color: var(--g2); cursor: pointer; transition: background .2s; text-decoration: none; }
+.hbtn:hover { background: rgba(0, 0, 0, .55); }
+.hbtn.gira svg { animation: gira 1s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.huser { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 13px 0 5px; border-radius: var(--r-input); background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); color: #fff; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.huser:hover { background: rgba(255, 255, 255, .18); }
+.huser .av { width: 24px; height: 24px; font-size: 11px; }
 .ibtn { width: 36px; height: 36px; flex: none; display: inline-grid; place-items: center; border-radius: var(--r-btn); border: 1px solid rgba(255, 255, 255, .12); background: rgba(0, 0, 0, .28); color: #fff; }
 .ibtn:hover { background: rgba(0, 0, 0, .4); }
-.ibtn.lua { color: var(--g2); }
-.ibtn.gira svg { animation: gira 1s linear infinite; }
-@keyframes gira { to { transform: rotate(360deg); } }
-.userbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 4px; border: 0; border-radius: var(--pill); background: rgba(255, 255, 255, .12); color: #fff; font-weight: 600; }
-.userbtn .chev { color: var(--g2); font-size: 11px; }
-.av { width: 28px; height: 28px; flex: none; border-radius: 50%; display: inline-grid; place-items: center; background: var(--g2); color: #0b2a17; font-size: 11.5px; font-weight: 800; }
+.av { width: 28px; height: 28px; flex: none; border-radius: 50%; display: inline-grid; place-items: center; background: var(--g2); color: var(--primary-deep); font-size: 11.5px; font-weight: 800; }
 .mwrap { position: relative; }
-@media (max-width: 860px) { .devbtn { display: none; } }
-@media (max-width: 600px) { .logo span, .userbtn .nm, .userbtn .chev { display: none; } .userbtn { padding: 0 4px; } .topbar .wrap { gap: 6px; } .pill-ag { display: none; } }
+.grow { flex: 1; }
+@media (max-width: 520px) { #devBtns { display: none !important; } }
+@media (max-width: 720px) { .hunit .t, .huser .nm { display: none; } .hunit { padding: 0 10px; } .huser { padding: 0 5px; } }
+@media (max-width: 420px) { .hlogo span { display: none; } }
 
 /* ---------- menus ---------- */
 .menu { position: absolute; top: calc(100% + 8px); width: 300px; max-width: calc(100vw - 24px); z-index: 50; padding: 8px; color: var(--fg);
@@ -144,12 +154,12 @@ header.top { position: sticky; top: 0; z-index: 40; }
 
 /* ---------- abas ---------- */
 .tabsbar { position: relative; z-index: 1; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4); border-bottom: 1px solid var(--border); }
-.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
-.nav button { display: inline-flex; align-items: center; gap: 8px; padding: 13px 14px 11px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font-weight: 500; white-space: nowrap; }
-.nav button:hover { color: var(--fg); }
-.nav button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
-:root[data-theme="dark"] .nav button[aria-selected="true"] { color: var(--g2); border-bottom-color: var(--g2); }
-.cnt { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--pill); background: var(--primary-deep); color: #fff; font-size: 11px; font-weight: 700; }
+.nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { display: inline-flex; align-items: center; gap: 8px; padding: 13px 14px 11px; border: 0; border-bottom: 3px solid transparent; border-radius: var(--r-input) var(--r-input) 0 0; background: none; color: var(--muted); font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: color .2s, background .2s; }
+.nav button:hover { color: var(--fg); background: color-mix(in srgb, var(--hover) 60%, transparent); }
+.nav button[aria-selected="true"] { color: var(--active); border-bottom-color: var(--active); font-weight: 700; }
+.cnt { font-variant-numeric: tabular-nums; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--pill); background: var(--primary-deep); color: #fff; font-size: 11px; font-weight: 700; }
 
 /* ---------- faixa Ver como ---------- */
 .vcbar { background: color-mix(in srgb, var(--warn) 24%, var(--bg)); border-bottom: 1px solid color-mix(in srgb, var(--warn) 60%, transparent); }
@@ -413,17 +423,18 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <header class="top">
   <div class="topbar">
     <div class="wrap">
-      <span id="logo"></span>
-      <div class="mwrap" id="sisWrap"></div>
-      <div class="grow"></div>
-      <span class="pill-ag" id="pillAg" hidden></span>
-      <span id="devBtns" class="row" style="gap:6px" hidden></span>
-      <button type="button" class="ibtn" id="btnAtualizar" data-a="atualizar" aria-label="Atualizar" title="Atualizar"><i class="fa-solid fa-rotate-right"></i></button>
-      <button type="button" class="ibtn lua" data-a="tema" aria-label="Tema escuro" title="Tema escuro"><i class="fa-solid fa-moon"></i></button>
-      <div class="mwrap" id="userWrap"></div>
+      <span id="logo" style="display:contents"></span>
+      <div class="mwrap brand-txt" id="sisWrap"></div>
+      <div class="h-right">
+        <span class="hunit" id="pillAg" hidden></span>
+        <span id="devBtns" style="display:inline-flex;gap:8px" hidden></span>
+        <button type="button" class="hbtn" id="btnAtualizar" data-a="atualizar" aria-label="Atualizar" title="Atualizar"><i class="fa-solid fa-rotate"></i></button>
+        <button type="button" class="hbtn" data-a="tema" aria-label="Alternar tema" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+        <div class="mwrap" id="userWrap"></div>
+      </div>
     </div>
   </div>
-  <div class="tabsbar" id="tabsbar" hidden><div class="wrap"><nav class="nav" id="nav" role="tablist"></nav></div></div>
+  <div class="tabsbar" id="tabsbar" hidden><nav class="wrap nav" id="nav" role="tablist"></nav></div>
   <div class="vcbar" id="vcbar" hidden></div>
 </header>
 
@@ -435,7 +446,7 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <div id="toastRaiz"></div>
 
 <script>
-const VERSAO_TELA = 3;
+const VERSAO_TELA = 4;
 
 /* =================== estado =================== */
 let DB = null, CARREGOU_EM = 0, OCUPADO = false;
@@ -546,20 +557,21 @@ function renderConteudo() {
 function renderTopo() {
   const e = DB.eu;
   $('#logo').innerHTML = DB.linkLogo
-    ? '<a class="logo" href="' + esc(DB.linkLogo) + '" target="_top" title="CrediBrás"><svg><use href="#mark"/></svg><span>CrediBrás</span></a>'
-    : '<span class="logo"><svg><use href="#mark"/></svg><span>CrediBrás</span></span>';
+    ? '<a class="hlogo" href="' + esc(DB.linkLogo) + '" target="_top" title="CrediBrás"><svg aria-hidden="true"><use href="#mark"/></svg><span>CrediBrás</span></a>'
+    : '<span class="hlogo"><svg aria-hidden="true"><use href="#mark"/></svg><span>CrediBrás</span></span>';
   const tem = DB.atalhos.length > 0;
-  let s = '<button type="button" class="sis" ' + (tem ? 'data-a="menu" data-m="links" aria-haspopup="true" aria-expanded="' + (UI.menu === 'links') + '"' : 'disabled') + '>' + esc(DB.sistema) + (tem ? ' <span class="chev">' + ic('chevron-down') + '</span>' : '') + '</button>';
+  let s = '<button type="button" class="brand-btn' + (tem ? ' tem" data-a="menu" data-m="links" aria-haspopup="true" aria-expanded="' + (UI.menu === 'links') + '"' : '"') + '><b>' + esc(DB.sistema) + '</b>' + (tem ? ic('chevron-down', 'chev') : '') + '</button>';
   if (UI.menu === 'links') {
     s += '<div class="menu esq" role="menu"><div class="cap">Links e guias</div>' + DB.atalhos.map(a =>
       '<a class="mi" href="' + esc(a.link) + '" target="_blank" rel="noopener"><span class="ic">' + ic('book-open') + '</span><span class="tx"><b>' + esc(a.nome) + '</b>' + (a.descricao ? '<small>' + esc(a.descricao) + '</small>' : '') + '</span>' + ic('up-right-from-square', 'muted') + '</a>').join('') + '</div>';
   }
   $('#sisWrap').innerHTML = s;
-  const pa = $('#pillAg'); pa.hidden = false; pa.textContent = e.agencia === 'Matriz' ? 'Matriz' : 'Agência ' + e.agencia;
+  const pa = $('#pillAg'), agTxt = labelAg(e.agencia);
+  pa.hidden = false; pa.title = agTxt; pa.innerHTML = ic('building-columns') + ' <span class="t">' + esc(agTxt) + '</span>';
   const dv = $('#devBtns');
   dv.hidden = !DB.central;
-  dv.innerHTML = DB.central ? '<a class="devbtn" href="' + esc(DB.central.planilha) + '" target="_blank" rel="noopener">' + ic('table') + ' Planilha</a><a class="devbtn" href="' + esc(DB.central.codigo) + '" target="_blank" rel="noopener">' + ic('code') + ' Código</a>' : '';
-  let u = '<button type="button" class="userbtn" data-a="menu" data-m="user" aria-haspopup="true" aria-expanded="' + (UI.menu === 'user') + '"><span class="av"></span><span class="nm"></span><span class="chev">' + ic('chevron-down') + '</span></button>';
+  dv.innerHTML = DB.central ? '<a class="hbtn" href="' + esc(DB.central.planilha) + '" target="_blank" rel="noopener" title="Planilha" aria-label="Planilha">' + ic('table') + '</a><a class="hbtn" href="' + esc(DB.central.codigo) + '" target="_blank" rel="noopener" title="Código" aria-label="Código">' + ic('code') + '</a>' : '';
+  let u = '<button type="button" class="huser" data-a="menu" data-m="user" aria-haspopup="true" aria-expanded="' + (UI.menu === 'user') + '"><span class="av"></span><span class="nm"></span>' + ic('chevron-down', 'chev') + '</button>';
   if (UI.menu === 'user') {
     u += '<div class="menu dir" role="menu"><div class="grp"><div class="me"><span class="av"></span><div style="min-width:0"><b class="nmx"></b><div class="em"></div><div class="ac">' + esc(e.acesso.label) + '</div></div></div></div>';
     if (e.acessos.length > 1) {
@@ -1419,6 +1431,9 @@ document.addEventListener('keydown', ev => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && DB && !OCUPADO && Date.now() - CARREGOU_EM > 60000 && !PAINEL && !(LINKS && LINKS.mexeu)) carregar();
 });
+
+/* sombra do topo ao rolar */
+addEventListener('scroll', () => { const h = $('header.top'); if (h) h.classList.toggle('scrolled', scrollY > 4); }, { passive: true });
 
 /* =================== início =================== */
 try { if (localStorage.getItem('tema') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { /* sem armazenamento */ }

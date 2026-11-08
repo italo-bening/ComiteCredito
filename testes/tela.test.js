@@ -52,7 +52,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
   await passo('atendente abre e vê o rodapé com a versão', async () => {
     await entrar(AT2);
     const r = await page.textContent('#rodape');
-    if (!/Comitê de Crédito · Versão 3 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
+    if (!/Comitê de Crédito · Versão 4 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
   });
   await passo('enviar incompleto mostra o que falta e marca em vermelho', async () => {
     await page.click('[data-a="aba"][data-id="nova"]');
@@ -216,7 +216,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.fill('[data-lk="link"][data-i="0"]', 'https://drive.google.com/manual');
     await page.click('[data-a="lkSalvar"]');
     igual(await popTitulo(), 'Links salvos'); await fechaPop();
-    await page.click('.sis');
+    await page.click('.brand-btn');
     await page.waitForSelector('.menu .mi');
     await page.click('[data-a="tema"]');
     await page.click('[data-a="aba"][data-id="ops"]');

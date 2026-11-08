@@ -11,9 +11,10 @@
  *      ordem de chegada (coluna chegada) para a fila de cada etapa.
  *   3  "Análise estendida" vira "Aprovação posterior" (a diretoria decide outro dia; no dia seguinte volta para a fila);
  *      "Reprovada" vira "Negada"; getData devolve o dia de hoje para a fila da diretoria.
+ *   4  Topo no Padrão do topo (barra de 54px, botões quadrados de 34px, agência com ícone, abas com 6px).
  */
-const VERSAO = 3;
-const VERSAO_DATA = '07/11/2026 16:25';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
+const VERSAO = 4;
+const VERSAO_DATA = '08/11/2026 19:15';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
 
 const NOME_SISTEMA = 'Comitê de Crédito';
 const FUSO = 'America/Porto_Velho';
