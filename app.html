@@ -47,7 +47,9 @@
 })();
 </script>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
 
 <style>
@@ -407,6 +409,239 @@ footer { padding: 16px; text-align: center; font-size: 12.5px; color: var(--subt
 footer.alerta { color: var(--danger); font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ==========================================================================
+   VISUAL PAINEL (Guia visual CrediBrás, Almoxarifado versão 75)
+   Camada por cima do estilo acima: cores, fontes, topo, abas, cartões, botões,
+   campos, janela, aviso de rodapé, transições e etiqueta de progresso.
+   ========================================================================== */
+:root {
+  --primary: #0f6b3a; --g2: #8ad14f; --done: #1a9a55; --warn: #e9a90c; --danger: #d2423b; --info: #2f55b8;
+  --bg: #f4f5f2; --card: #ffffff; --surface: #f1f3ef; --hover: #eaede7; --border: #e3e6e0;
+  --fg: #111a15; --muted: #5c6a62; --subtle: #8a958f;
+  --side: #0b2416; --side-2: #0f2e1c; --side-fg: #dfeae3; --side-line: rgba(255, 255, 255, .08);
+  --primary-deep: var(--side);
+  --font: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --sh-card: 0 1px 0 rgba(17, 26, 21, .03), 0 1px 3px rgba(17, 26, 21, .04);
+  --sh-hover: 0 2px 4px rgba(17, 26, 21, .04), 0 12px 28px -12px rgba(17, 26, 21, .18);
+  --sh-float: 0 24px 60px -18px rgba(5, 25, 14, .38);
+  --ease: cubic-bezier(.2, .8, .2, 1); --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-pop: cubic-bezier(.34, 1.36, .64, 1);
+  --r-btn: 9px; --r-input: 9px; --r-card: 14px; --r-lg: 18px;
+  --grad: radial-gradient(60% 220% at 90% 0%, var(--side-2), transparent 70%), var(--side);
+  --active: var(--primary);
+}
+:root[data-theme="dark"] {
+  --bg: #0a0e0c; --card: #101613; --surface: #141b17; --hover: #19221d; --border: #1f2924;
+  --fg: #e8efea; --muted: #9aa9a0; --subtle: #6c7a72;
+  --side: #070d0a; --side-2: #0c1511; --side-line: rgba(255, 255, 255, .06);
+  --sh-card: 0 1px 0 rgba(0, 0, 0, .25); --sh-hover: 0 12px 28px -12px rgba(0, 0, 0, .6); --sh-float: 0 20px 50px -20px rgba(0, 0, 0, .7);
+  --active: var(--g2);
+}
+body { font-family: var(--font); font-feature-settings: "ss01", "cv11"; letter-spacing: -.005em; font-size: 16px; line-height: 1.5; overflow-x: clip; }
+#main, #painelRaiz, #popRaiz, .menu, .vcbar { font-size: 14px; }
+button, input, select, textarea { font-family: var(--font); }
+::selection { background: color-mix(in srgb, var(--g2) 45%, transparent); }
+.cb-so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- topo ---------- */
+header.top { top: env(safe-area-inset-top, 0px); }
+.topbar { background: var(--grad); border-bottom: 1px solid var(--side-line); }
+.topbar .wrap { gap: 16px; min-height: 60px; padding-top: 10px; padding-bottom: 10px; }
+.hlogo { height: auto; padding: 0; gap: 10px; background: none; border: 0; border-radius: 0; line-height: 1; flex: none; }
+.hlogo[href]:hover { background: none; opacity: .9; }
+.hlogo svg { width: 24px; height: 24px; display: block; }
+.cb-sep { width: 1px; height: 22px; background: var(--side-line); flex: none; }
+.brand-txt { padding-left: 0; border-left: 0; }
+.brand-btn { color: var(--side-fg); border-radius: 7px; }
+.brand-txt b { font-size: 14px; font-weight: 500; }
+.h-right { gap: 8px; flex: none; }
+.hunit { border-radius: 9px; background: rgba(255, 255, 255, .06); border: 1px solid var(--side-line); line-height: 1; }
+.hunit svg { font-size: 13px; }
+.hbtn { border-radius: 9px; background: rgba(255, 255, 255, .06); border: 1px solid var(--side-line); color: var(--g2); font-size: 15px; }
+.huser { border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--side-line); }
+.huser .av { color: #07301a; font-weight: 700; }
+@media (hover: hover) { .hbtn:hover, .huser:hover { background: rgba(255, 255, 255, .12); } }
+
+/* ---------- abas ---------- */
+.tabsbar { background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--border); }
+.tabsbar .nav { gap: 4px; padding-left: 24px; padding-right: 24px; }
+.tabsbar .nav button { padding: 14px 12px 12px; border-bottom: 2px solid transparent; border-radius: 0; font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--muted); transition: color .25s var(--ease-out); }
+.tabsbar .nav button svg { font-size: 16px; }
+.tabsbar .nav button:hover { background: none; color: var(--fg); }
+.tabsbar .nav button[aria-selected="true"] { color: var(--fg); font-weight: 600; border-bottom-color: var(--primary); }
+.tabsbar .nav button[aria-selected="true"] svg { color: var(--primary); }
+:root[data-theme="dark"] .tabsbar .nav button[aria-selected="true"] { border-bottom-color: var(--g2); }
+:root[data-theme="dark"] .tabsbar .nav button[aria-selected="true"] svg { color: var(--g2); }
+.cnt { margin-left: 2px; background: var(--primary); color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 600; line-height: 1; }
+:root[data-theme="dark"] .cnt { background: var(--g2); color: #0a2414; }
+
+/* ---------- conteúdo, título e rodapé ---------- */
+main { padding: 0; }
+#main { max-width: 1240px; padding: 32px 32px 72px; min-height: 60vh; }
+.cb-titulo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 4px 0 6px; }
+.cb-titulo h2 { margin: 0 0 6px; font-size: 30px; font-weight: 650; letter-spacing: -.035em; line-height: 1.1; }
+.cb-titulo p { margin: 0; font-size: 14px; color: var(--muted); }
+h3 { font-weight: 600; letter-spacing: -.02em; }
+footer { padding: 0 16px 28px; font-size: 12px; color: var(--muted); }
+
+/* ---------- cartões ---------- */
+.card, .bloco, .item, .tipo { border-radius: 14px; border-color: var(--border); box-shadow: var(--sh-card); }
+.card { padding: 22px; }
+.secao { border-radius: 14px; }
+.secao > .bx { border-radius: 14px; box-shadow: var(--sh-card); }
+.item { transition: box-shadow .2s, transform .2s var(--ease); }
+@media (hover: hover) { .item:hover { box-shadow: var(--sh-hover); transform: translateY(-2px); } }
+.item .nro { color: var(--primary); }
+.item.tarefa { border-color: var(--border); box-shadow: inset 3px 0 0 var(--primary), var(--sh-card); }
+:root[data-theme="dark"] .item.tarefa { box-shadow: inset 3px 0 0 var(--g2), var(--sh-card); }
+.bloco.acao { border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border)); background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
+.vazio, .estado { border-radius: 14px; }
+
+/* ---------- botões ---------- */
+.btn { height: 38px; border-radius: 9px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 14px; font-weight: 600; transition: background-color .18s, border-color .18s, color .18s, transform .18s var(--ease), box-shadow .18s, opacity .18s; }
+.btn:not(:disabled):active { transform: scale(.97); }
+.btn[disabled] { opacity: .55; }
+.btn-primary { background: var(--primary); color: #fff; border-color: color-mix(in srgb, var(--primary) 70%, #000); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 1px 2px rgba(5, 40, 20, .2); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn-danger, .btn.confirmar { background: var(--danger); border-color: transparent; color: #fff; }
+.btn-sm { height: 30px; }
+@media (hover: hover) {
+  .btn:not(:disabled):hover { background: var(--hover); opacity: 1; }
+  .btn-primary:not(:disabled):hover { background: color-mix(in srgb, var(--primary) 88%, #000); }
+  .btn-danger:not(:disabled):hover, .btn.confirmar:hover { background: color-mix(in srgb, var(--danger) 88%, #000); }
+  .btn-ghost:not(:disabled):hover { color: var(--fg); }
+}
+:root[data-theme="dark"] .btn-primary { background: var(--g2); color: #0a1f12; border-color: transparent; box-shadow: none; }
+@media (hover: hover) { :root[data-theme="dark"] .btn-primary:not(:disabled):hover { background: color-mix(in srgb, var(--g2) 85%, #fff); } }
+
+/* ---------- chips e etiquetas ---------- */
+.chip { height: 32px; padding: 0 16px; gap: 8px; font-size: 13px; font-weight: 500; transition: background-color .18s, border-color .18s, color .18s; }
+.chip[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--card); font-weight: 600; }
+:root[data-theme="dark"] .chip[aria-pressed="true"] { color: var(--bg); }
+.chip.nok[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: #fff; }
+.chip .cnt { min-width: 0; height: auto; padding: 0; margin: 0; background: none; color: var(--muted); font-family: var(--font); font-size: 11px; font-weight: 500; }
+.chip[aria-pressed="true"] .cnt { color: color-mix(in srgb, var(--card) 70%, transparent); }
+:root[data-theme="dark"] .chip .cnt { background: none; color: var(--muted); }
+:root[data-theme="dark"] .chip[aria-pressed="true"] .cnt { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+@media (hover: hover) { .chip:not([aria-pressed="true"]):not([disabled]):hover { background: var(--hover); } }
+.tag { gap: 6px; padding: 3px 9px 3px 8px; font-size: 11.5px; font-weight: 550; line-height: 1.3; letter-spacing: .02em; background: var(--surface); color: var(--muted); }
+.tag::before { width: 5px; height: 5px; }
+.tag.ok { color: #177442; background: #dff1e7; }
+.tag.info { color: #2f55b8; background: #e7edfd; }
+.tag.wait { color: #8a6200; background: #faecca; }
+.tag.no { color: #b53c35; background: #fae8e7; }
+:root[data-theme="dark"] .tag.ok { color: #7fe0a5; background: #11281c; }
+:root[data-theme="dark"] .tag.info { color: #9db8ff; background: #15202e; }
+:root[data-theme="dark"] .tag.wait { color: #ffd56b; background: #403611; }
+:root[data-theme="dark"] .tag.no { color: #ff9a9a; background: #271b18; }
+.selo { font-family: var(--mono); }
+
+/* ---------- campos e caixa de seleção ---------- */
+.campo label, .campo .lb { font-size: 12px; font-weight: 600; color: var(--fg); }
+input.in, select.in, textarea.in { height: 40px; border-radius: 9px; font-size: 14px; transition: border-color .15s ease-out, box-shadow .15s; }
+textarea.in { height: auto; }
+.in.cheio { border-color: var(--border); }
+.in:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+:root[data-theme="dark"] .in:focus { border-color: var(--g2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--g2) 18%, transparent); }
+.campo.erro .in { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 16%, transparent); }
+.chk input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin: 0; flex: none; display: inline-grid; place-content: center; border: 1.5px solid color-mix(in srgb, var(--fg) 30%, transparent); border-radius: 5px; background: var(--card); cursor: pointer; transition: background-color .18s, border-color .18s, transform .18s var(--ease), box-shadow .18s; }
+.chk input[type=checkbox]::before { content: ""; width: 9px; height: 5px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg) scale(0); transition: transform .22s var(--ease) .04s; }
+.chk input[type=checkbox]:checked { background: var(--primary); border-color: var(--primary); }
+.chk input[type=checkbox]:checked::before { transform: translateY(-1px) rotate(-45deg) scale(1); }
+.chk input[type=checkbox]:not(:disabled):active { transform: scale(.9); }
+.chk input[type=checkbox]:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
+:root[data-theme="dark"] .chk input[type=checkbox]:checked { background: var(--g2); border-color: var(--g2); }
+:root[data-theme="dark"] .chk input[type=checkbox]::before { border-color: #0a2414; }
+.barra > div { background: var(--primary); }
+:root[data-theme="dark"] .barra > div { background: var(--g2); }
+
+/* ---------- menus, janela, aviso central e aviso de rodapé ---------- */
+.menu { border-radius: 14px; background: var(--card); box-shadow: var(--sh-float); }
+.mi .ic { border-radius: 9px; }
+.fundo, .pop-fundo { background: rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.painel { border-radius: 18px; background: var(--bg); border: 1px solid var(--border); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--sh-float); }
+:root:not([data-theme="dark"]) .painel { background: var(--bg); }
+.painel .ph { padding: 18px 56px 16px 24px; }
+.painel .ph h2 { font-size: 20px; font-weight: 650; letter-spacing: -.025em; }
+.painel .ph .nro { color: var(--g2); font-family: var(--mono); font-weight: 600; letter-spacing: 0; }
+.painel .ph .x, .pop .x { background: rgba(255, 255, 255, .06); border: 1px solid var(--side-line); border-radius: 9px; }
+.painel .pf { background: var(--card); }
+.novo .painel { animation: cb-abre-lado .25s var(--ease-out); }
+.novo .painel.centro { animation: cb-abre-meio .25s var(--ease-out); }
+@keyframes cb-abre-lado { from { opacity: 0; transform: translateX(24px); } }
+@keyframes cb-abre-meio { from { opacity: 0; transform: translate(-50%, -50%) scale(.96); } }
+.pop { width: min(460px, 100%); padding: 26px 26px 20px; border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--sh-float); animation: cb-abre .25s var(--ease-out); }
+@keyframes cb-abre { from { opacity: 0; transform: scale(.96); } }
+.pop .x { top: 12px; right: 12px; width: 34px; height: 34px; color: var(--muted); background: transparent; border-color: transparent; }
+.pop .tom { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, var(--card)); }
+.pop h2 { margin: 0 0 6px; font-size: 20px; font-weight: 650; letter-spacing: -.025em; }
+.pop p { margin: 0 0 14px; font-size: 14px; }
+.pop .det { border-radius: 12px; }
+.pop .bts { gap: 8px; flex-wrap: nowrap; }
+.pop .bts .btn { flex: 1; height: 40px; border-radius: 999px; padding: 0 16px; font-size: 13px; }
+.toast { bottom: 22px; z-index: 85; padding: 12px 22px; border-radius: 999px; background: #16211a; font-size: 14px; box-shadow: var(--sh-float); animation: none;
+  opacity: 0; transform: translate(-50%, 16px) scale(.97); filter: blur(2px); transition: opacity .25s var(--ease-out), transform .25s var(--ease-out), filter .25s var(--ease-out); }
+.toast.visivel { opacity: 1; transform: translate(-50%, 0) scale(1); filter: blur(0); transition-duration: .35s; }
+:root[data-theme="dark"] .toast { background: #1b2620; color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); }
+.toast button { color: var(--g2); }
+
+/* ---------- transições ---------- */
+#main.cb-revela { animation: cb-revelar .4s ease-in-out both; }
+@keyframes cb-revelar { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: blur(0); } }
+.cnt.cb-estala { animation: cb-estalar .5s var(--ease-pop) both; }
+@keyframes cb-estalar { 0% { transform: scale(0); opacity: 0; filter: blur(2px); } 100% { transform: scale(1); opacity: 1; filter: blur(0); } }
+.cb-treme { animation: cb-tremer .28s linear; }
+@keyframes cb-tremer {
+  0% { transform: translateX(0); animation-timing-function: var(--ease-out); }
+  28.57% { transform: translateX(6px); animation-timing-function: var(--ease-out); }
+  57.14% { transform: translateX(-6px); animation-timing-function: var(--ease-out); }
+  78.57% { transform: translateX(4px); animation-timing-function: var(--ease-out); }
+  100% { transform: translateX(0); }
+}
+.cb-esqueleto { display: grid; gap: 12px; }
+.cb-esqueleto i { display: block; border-radius: 12px; background: color-mix(in srgb, var(--fg) 7%, transparent); animation: cb-pulsar 1s ease-in-out infinite; }
+.cb-esqueleto .e-t { width: 120px; height: 12px; border-radius: 6px; }
+.cb-esqueleto .e-h { width: 260px; max-width: 70%; height: 30px; margin-bottom: 10px; }
+.cb-esqueleto .e-linha { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.cb-esqueleto .e-linha i { height: 118px; border-radius: 14px; }
+.cb-esqueleto .e-linha i:nth-child(2) { animation-delay: .1s; }
+.cb-esqueleto .e-linha i:nth-child(3) { animation-delay: .2s; }
+.cb-esqueleto .e-linha i:nth-child(4) { animation-delay: .3s; }
+.cb-esqueleto .e-p { height: 300px; border-radius: 14px; }
+@keyframes cb-pulsar { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ---------- carregando: etiqueta de progresso junto do mouse (a tela NÃO trava nem desfoca) ---------- */
+body.cb-ocupado { cursor: progress; }
+.ac-root { --ac-bg: #06130c; --ac-fill: var(--primary); --ac-seta: var(--primary); --ac-fg: #fff; position: fixed; inset: auto; left: 0; top: 0; width: 0; height: 0; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; pointer-events: none; z-index: 2147483646; }
+:root[data-theme="dark"] .ac-root { --ac-bg: #030806; --ac-fill: #168a4b; --ac-seta: var(--g2); }
+.ac-arrow, .ac-label { position: fixed; left: 0; top: 0; will-change: transform; }
+.ac-arrow svg { display: block; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35)); }
+.ac-arrow path { fill: var(--ac-seta); stroke: #fff; }
+:root[data-theme="dark"] .ac-arrow path { stroke: #0a1f12; }
+.ac-label { display: flex; align-items: center; gap: 7px; padding: 7px 13px 8px; border-radius: 999px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .14); font: 600 13px/1.1 var(--font); letter-spacing: -.005em; white-space: nowrap; color: var(--ac-fg); background: var(--ac-bg); box-shadow: 0 8px 22px -6px rgba(5, 25, 14, .45), inset 0 1px 0 rgba(255, 255, 255, .16); }
+.ac-label > * { position: relative; }
+.ac-label > .ac-fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: 0 50%; background: var(--ac-fill); transition: background-color .3s ease; will-change: transform; }
+.ac-label.ac-ok .ac-fill { background: var(--done); }
+.ac-label.ac-bad .ac-fill { background: var(--danger); }
+.ac-dots { display: inline-block; width: 1.2em; margin-left: -6px; text-align: left; }
+.ac-icon { display: none; width: 14px; height: 14px; }
+.ac-spin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; animation: ac-girar .7s linear infinite; }
+@keyframes ac-girar { to { transform: rotate(360deg); } }
+.ac-label.ac-ok .ac-icon, .ac-label.ac-bad .ac-icon { display: block; }
+.ac-label.ac-ok .ac-dots, .ac-label.ac-bad .ac-dots, .ac-label.ac-ok .ac-spin, .ac-label.ac-bad .ac-spin { display: none; }
+.ac-arrow { display: none; }
+
+/* ---------- celular ---------- */
+@media (max-width: 1099px) { #main { padding: 22px 16px 56px; } .tabsbar .nav { padding-left: 12px; padding-right: 12px; } }
+@media (max-width: 720px) { .cb-titulo h2 { font-size: 26px; } }
+
+/* ---------- quem pediu menos movimento no computador ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .toast, .toast.visivel, .chk input[type=checkbox], .chk input[type=checkbox]::before { transition: none !important; }
+  #main.cb-revela, .cnt.cb-estala, .cb-treme, .cb-esqueleto i, .pop, .novo .painel { animation: none !important; }
+  .ac-spin { animation-duration: 1.6s !important; }
+}
 </style>
 </head>
 <body>
@@ -423,13 +658,14 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <header class="top">
   <div class="topbar">
     <div class="wrap">
-      <span id="logo" style="display:contents"></span>
-      <div class="mwrap brand-txt" id="sisWrap"></div>
-      <div class="h-right">
+      <span id="logo" style="display:contents"><span class="hlogo"><svg aria-hidden="true"><use href="#mark"/></svg><span>CrediBrás</span></span></span>
+      <i class="cb-sep" aria-hidden="true"></i>
+      <div class="mwrap brand-txt" id="sisWrap"><button type="button" class="brand-btn"><b>Comitê de Crédito</b></button></div>
+      <div class="h-right" id="hRight" hidden>
         <span class="hunit" id="pillAg" hidden></span>
         <span id="devBtns" style="display:inline-flex;gap:8px" hidden></span>
         <button type="button" class="hbtn" id="btnAtualizar" data-a="atualizar" aria-label="Atualizar" title="Atualizar"><i class="fa-solid fa-rotate"></i></button>
-        <button type="button" class="hbtn" data-a="tema" aria-label="Alternar tema" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+        <button type="button" class="hbtn" id="btTema" data-a="tema" aria-label="Alternar entre claro e escuro" title="Tema claro ou escuro"><i class="fa-solid fa-moon"></i></button>
         <div class="mwrap" id="userWrap"></div>
       </div>
     </div>
@@ -446,7 +682,7 @@ footer.alerta { color: var(--danger); font-weight: 700; }
 <div id="toastRaiz"></div>
 
 <script>
-const VERSAO_TELA = 4;
+const VERSAO_TELA = 5;
 
 /* =================== estado =================== */
 let DB = null, CARREGOU_EM = 0, OCUPADO = false;
@@ -488,59 +724,182 @@ function run(fn, ...args) {
     r[fn].apply(r, args);
   });
 }
-function girar(sim) { const b = $('#btnAtualizar'); if (b) b.classList.toggle('gira', !!sim); }
 
-async function carregar() {
-  girar(true);
-  if (!DB) estado('carregando');
-  const lento = setTimeout(() => { if (!DB) estado('lento'); }, 20000);
-  try {
-    aplicar(await run('getData'));
-  } catch (e) {
-    if (!DB) {
-      if (/^Acesso não liberado/.test(e.message)) estado('bloqueado', e.message.replace(/^Acesso não liberado:\s*/, ''));
-      else estado('erro', e.message);
-    } else popErro(e.message);
-  } finally { clearTimeout(lento); girar(false); }
+/* ===== etiqueta de progresso junto do mouse (cursor de ação do Almoxarifado) =====
+   A barra anda por estimativa: começa contando 6 s por ação, aprende o tempo real de cada uma
+   e guarda no navegador. Nunca completa sozinha; fica verde com "Pronto" quando a resposta chega. */
+const AC = (() => {
+  const fine = matchMedia('(pointer: fine)').matches, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, SIZE = 22, MIN = 400;
+  let root, arrow, label, text, dots, icon, fill, raf = 0, last = 0, visible = false, shownAt = 0, hideTimer = 0, dotTimer = 0, press = 1, side = 1, kind = null, prog = 0, chave = '', tau = 2600;
+  const MEDIA_PADRAO = 6000; let medias = {};
+  try { medias = JSON.parse(localStorage.getItem('comite_ac_ms') || '{}') || {}; } catch (e) { /* sem armazenamento */ }
+  const aprende = ms => { if (!chave || !(ms > 0)) return; ms = Math.max(600, Math.min(30000, ms)); medias[chave] = medias[chave] ? Math.round(medias[chave] * .7 + ms * .3) : Math.round(ms); try { localStorage.setItem('comite_ac_ms', JSON.stringify(medias)); } catch (e) { /* sem armazenamento */ } };
+  const ptr = { x: innerWidth / 2, y: innerHeight / 2, seen: false }, A = { x: ptr.x, y: ptr.y, vx: 0, vy: 0, rot: 0 }, L = { x: ptr.x, y: ptr.y, vx: 0, vy: 0, rot: 0 }, S = { s: 0, v: 0, target: 0 };
+  addEventListener('pointermove', e => { if (e.pointerType === 'touch') return; ptr.x = e.clientX; ptr.y = e.clientY; if (!ptr.seen) { ptr.seen = true; A.x = L.x = ptr.x; A.y = L.y = ptr.y; } }, { passive: true });
+  addEventListener('pointerdown', () => { press = .9; }, { passive: true }); addEventListener('pointerup', () => { press = 1; }, { passive: true });
+  function build() {
+    root = document.createElement('div'); root.className = 'ac-root'; root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
+    if (root.showPopover) root.setAttribute('popover', 'manual');
+    root.innerHTML = '<div class="ac-arrow"><svg width="' + SIZE + '" height="' + SIZE + '" viewBox="0 0 24 24"><path d="M3 2.5 L21 10.2 L12.6 12.6 L10.2 21 Z" stroke-width="1.6" stroke-linejoin="round"/></svg></div>' +
+      '<div class="ac-label"><span class="ac-fill"></span><span class="ac-spin"></span><svg class="ac-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></svg><span class="ac-text"></span><span class="ac-dots"></span></div>';
+    arrow = root.firstChild; label = root.lastChild; text = label.querySelector('.ac-text'); dots = label.querySelector('.ac-dots'); icon = label.querySelector('.ac-icon'); fill = label.querySelector('.ac-fill');
+  }
+  /* mola com massa: devolve a nova velocidade */
+  const spring = (pos, vel, target, k, c, m, dt) => vel + ((-k * (pos - target) - c * vel) / m) * dt, lim = v => Math.max(-1, Math.min(1, v));
+  function frame(t) {
+    raf = requestAnimationFrame(frame); const dt = Math.min(1 / 30, Math.max(1 / 240, (t - last) / 1000 || 1 / 60)); last = t;
+    const W = innerWidth, H = innerHeight, tx = fine ? ptr.x : W / 2, ty = fine ? ptr.y : H - 80;
+    if (reduce) { A.x = tx; A.y = ty; A.vx = A.vy = 0; } else { A.vx = spring(A.x, A.vx, tx, 380, 26, .7, dt); A.vy = spring(A.y, A.vy, ty, 380, 26, .7, dt); A.x += A.vx * dt; A.y += A.vy * dt; }
+    A.rot += (lim(A.vx / 900) * 14 - A.rot) * Math.min(1, dt * 12);
+    const lw = label.offsetWidth || 90, lh = label.offsetHeight || 26;
+    if (side === 1 && A.x + 16 + lw > W - 8) side = -1; else if (side === -1 && A.x - 16 - lw < 8) side = 1;
+    const off = SIZE * .75, lx = fine ? (side === 1 ? A.x + off : A.x - off - lw) : A.x - lw / 2, ly = fine ? Math.min(A.y + off, H - lh - 8) : A.y;
+    if (reduce) { L.x = lx; L.y = ly; L.vx = L.vy = 0; } else { L.vx = spring(L.x, L.vx, lx, 220, 16, .9, dt); L.vy = spring(L.y, L.vy, ly, 220, 16, .9, dt); L.x += L.vx * dt; L.y += L.vy * dt; }
+    L.rot += (lim(-L.vx / 700) * 8 - L.rot) * Math.min(1, dt * 10);
+    S.v = spring(S.s, S.v, S.target, 420, reduce ? 40 : 14, 1, dt); S.s += S.v * dt; const sc = Math.max(0, S.s) * press;
+    arrow.style.transformOrigin = '3px 2px';
+    arrow.style.transform = 'translate(' + (A.x - 3).toFixed(1) + 'px,' + (A.y - 2).toFixed(1) + 'px) rotate(' + A.rot.toFixed(2) + 'deg) scale(' + (press * Math.min(1, Math.max(0, S.s) * 1.2)).toFixed(3) + ')';
+    label.style.transformOrigin = !fine ? '50% 50%' : side === 1 ? '0% 0%' : '100% 0%';
+    label.style.transform = 'translate(' + L.x.toFixed(1) + 'px,' + L.y.toFixed(1) + 'px) rotate(' + L.rot.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
+    /* progresso: chega perto de 85% no tempo médio e desacelera (nunca completa sozinho); no fim corre até 100% */
+    const alvoP = kind ? 1 : .93 * (1 - Math.exp(-(t - shownAt) / tau)); prog += (alvoP - prog) * Math.min(1, dt * (kind ? 11 : 5));
+    fill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, prog)).toFixed(4) + ')';
+    root.style.opacity = S.s < .02 && S.target === 0 ? '0' : '1';
+    if (!visible && S.target === 0 && Math.abs(S.s) < .01 && Math.abs(S.v) < .05) stop();
+  }
+  function topo() { if (!root.isConnected) document.body.append(root); if (root.showPopover) { try { if (root.matches(':popover-open')) root.hidePopover(); root.showPopover(); } catch (e) { root.removeAttribute('popover'); } } }
+  function stop() { cancelAnimationFrame(raf); raf = 0; try { if (root.hidePopover && root.matches(':popover-open')) root.hidePopover(); } catch (e) { /* ok */ } root.remove(); }
+  function estadoAC(k) {
+    kind = k; label.classList.toggle('ac-ok', k === 'ok'); label.classList.toggle('ac-bad', k === 'bad');
+    icon.innerHTML = k === 'bad' ? '<path d="M7 7l10 10M17 7L7 17"/>' : '<path d="M5 12.5l4.5 4.5L19 7.5"/>';
+    clearInterval(dotTimer); dots.textContent = '';
+    if (!k) { let n = 0; dots.textContent = '.'; dotTimer = setInterval(() => { dots.textContent = '.'.repeat((n++ % 3) + 1); }, 380); }
+  }
+  function show(msg) {
+    msg = msg || 'Carregando'; if (!root) build(); topo(); if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } clearTimeout(hideTimer);
+    if (visible && !label.classList.contains('ac-ok') && !label.classList.contains('ac-bad')) { if (text.textContent !== msg) { text.textContent = msg; S.v += 5; } return; }
+    text.textContent = msg; estadoAC(null); if (!visible) { S.s = 0; S.v = 0; } shownAt = performance.now(); prog = 0; chave = msg; tau = (medias[msg] || MEDIA_PADRAO) / 2.3; visible = true; S.target = 1; S.v += 6;
+  }
+  function finish(k, msg, ms) {
+    if (!visible) return; if (k === 'ok' && !kind) aprende(performance.now() - shownAt);
+    const wait = Math.max(0, MIN - (performance.now() - shownAt)); clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { text.textContent = msg; estadoAC(k); S.v += k === 'bad' ? 4 : 8; if (k === 'bad' && !reduce) { L.vx += 900; setTimeout(() => { L.vx -= 1600; }, 80); } hideTimer = setTimeout(hide, ms); }, wait);
+  }
+  function hide() { clearTimeout(hideTimer); clearInterval(dotTimer); visible = false; if (!root) return; S.target = 0; }
+  return { show: show, hide: hide, done: (m, ms) => finish('ok', m || 'Pronto', ms || 900), fail: (m, ms) => finish('bad', m || 'Não deu certo', ms || 1400) };
+})();
+
+/* liga e desliga a etiqueta. ocupado(false) = "Pronto"; ocupado(false, true) = vermelho; ocupado(false, 'calado') = some quieta */
+function ocupado(ligado, textoOuErro) {
+  const era = document.body.classList.contains('cb-ocupado');
+  document.body.classList.toggle('cb-ocupado', !!ligado);
+  if (ligado) AC.show(String(textoOuErro || 'Salvando'));
+  else if (era) { if (textoOuErro === 'calado') AC.hide(); else if (textoOuErro) AC.fail(); else AC.done(); }
+}
+/* guarda das ações que gravam: enquanto algo carrega ou salva, a ação nova espera e a pessoa é avisada */
+let CARREGANDO = false;
+/* conta as vezes que a PESSOA trocou de aba ou abriu/fechou uma janela (o que o sistema fecha sozinho não conta) */
+let NAVEGOU = 0;
+const ACOES_NAVEGAR = { aba: 1, abrirOp: 1, navOp: 1, fecharPainel: 1, novaOp: 1, corrigirOp: 1, abrirPessoa: 1, novaPessoa: 1, abrirTipo: 1, novoTipo: 1 };
+function livre() {
+  if (!OCUPADO && !CARREGANDO) return true;
+  toast('Espere terminar para fazer outra ação.');
+  return false;
 }
 
-/* chama o servidor numa ação de gravar; a resposta é o getData() novo */
-async function acao(fn, args, depois) {
-  if (OCUPADO) return;
-  OCUPADO = true; girar(true);
-  $$('[data-trava]').forEach(b => { b.disabled = true; });
+/* busca os dados. A tela continua navegável enquanto isso; só a primeira abertura mostra o contorno da tela */
+async function carregar(modo) {
+  if (CARREGANDO) return;
+  if (DB && modo !== 'calado' && OCUPADO) { livre(); return; }
+  CARREGANDO = true;
+  const calado = modo === 'calado';
+  if (!DB) esqueleto();
+  if (!calado) ocupado(true, DB ? 'Atualizando' : 'Carregando');
+  const lento = setTimeout(() => { if (!DB) estado('lento'); }, 20000);
+  try {
+    const r = await run('getData');
+    CARREGANDO = false;
+    aplicar(r);
+    if (!calado) ocupado(false);
+  } catch (e) {
+    CARREGANDO = false;
+    const bloqueado = /^Acesso não liberado/.test(e.message);
+    if (!calado) ocupado(false, bloqueado ? 'calado' : true);
+    if (!DB) {
+      if (bloqueado) estado('bloqueado', e.message.replace(/^Acesso não liberado:\s*/, ''));
+      else estado('erro', e.message);
+    } else if (!calado) popErro(e.message);
+  } finally { clearTimeout(lento); CARREGANDO = false; }
+}
+
+/* chama o servidor numa ação de gravar; a resposta é o getData() novo.
+   Só os botões da janela que está salvando esperam; o resto da tela fica livre.
+   Se a pessoa mudou de aba ou de janela enquanto salvava, a tela é redesenhada onde ela está. */
+async function acao(fn, args, depois, texto) {
+  if (!livre()) return;
+  OCUPADO = true;
+  ocupado(true, texto || 'Salvando');
+  const nav0 = NAVEGOU;
+  const trava = PAINEL ? $$('#painelRaiz [data-trava]') : $$('#main .form-acoes [data-trava], #main [data-trava]');
+  trava.forEach(b => { b.disabled = true; });
   try {
     const r = await run(fn, ...args);
     aplicar(r);
-    if (depois) depois(r);
+    ocupado(false);
+    if (depois) {
+      if (NAVEGOU === nav0) depois(r);
+      else toast('Pronto: as mudanças foram salvas.');
+    }
   } catch (e) {
+    ocupado(false, true);
     popErro(e.message);
   } finally {
-    OCUPADO = false; girar(false);
-    $$('[data-trava]').forEach(b => { b.disabled = false; });
+    OCUPADO = false;
+    trava.forEach(b => { if (b.isConnected) b.disabled = false; });
   }
 }
 
+/* contorno da tela enquanto a primeira carga não chega */
+function esqueleto() {
+  $('#main').innerHTML = '<div class="cb-esqueleto" aria-hidden="true"><i class="e-t"></i><i class="e-h"></i>' +
+    '<div class="e-linha"><i></i><i></i><i></i><i></i></div><i class="e-p"></i></div><p class="cb-so-leitor">Carregando</p>';
+}
+/* fade da tela ao abrir e ao trocar de aba; a classe SAI no fim (filtro ligado prende o que é fixo na tela) */
+function revelar() {
+  const m = $('#main'), fim = () => m.classList.remove('cb-revela');
+  m.classList.remove('cb-revela'); void m.offsetWidth; m.classList.add('cb-revela');
+  m.addEventListener('animationend', e => { if (e.target === m) fim(); }, { once: true });
+  setTimeout(fim, 700);
+}
+/* campo com erro treme uma vez */
+function tremerErros() {
+  $$('#main .campo.erro, #main .chk.erro, #main [data-campo].erro').forEach(el => { el.classList.remove('cb-treme'); void el.offsetWidth; el.classList.add('cb-treme'); });
+}
+
 function aplicar(r) {
+  const primeira = !DB;
   DB = r; CARREGOU_EM = Date.now();
   if (!F) F = formVazio();
   const abas = abasVisiveis();
   if (!abas.find(a => a.id === ABA)) ABA = 'ops';
   render();
+  if (primeira) revelar();
 }
 
 /* =================== estados da tela =================== */
 function estado(tipo, msg) {
   $('#tabsbar').hidden = true;
+  if (tipo === 'lento' && $('#main .cb-esqueleto')) { $('#main').insertAdjacentHTML('afterbegin', '<div class="aviso" style="margin-bottom:16px">' + ic('triangle-exclamation') + '<div><b>A planilha ainda não respondeu' + RET + '</b> Se você está logado em mais de uma conta Google, abra numa janela anônima só com a conta da empresa.</div></div>'); return; }
   const m = $('#main');
   if (tipo === 'carregando') m.innerHTML = '<div class="estado"><div class="bol"><div class="anel"></div></div><h2>Carregando' + RET + '</h2><p>Buscando seus dados na planilha.</p></div>';
   if (tipo === 'lento') m.innerHTML = '<div class="estado"><div class="bol"><div class="anel"></div></div><h2>A planilha não respondeu' + RET + '</h2><p>Se você está logado em mais de uma conta Google, abra numa janela anônima só com a conta da empresa.</p></div>';
   if (tipo === 'bloqueado') m.innerHTML = '<div class="estado"><div class="bol" style="color:var(--warn)">' + ic('lock') + '</div><h2>Acesso não liberado</h2><p>' + esc(msg) + '</p></div>';
-  if (tipo === 'erro') m.innerHTML = '<div class="estado"><div class="bol" style="color:var(--danger)">' + ic('plug') + '</div><h2>Não deu para carregar.</h2><p>Motivo: ' + esc(msg) + '</p><p><button class="btn btn-primary" data-a="atualizar">' + ic('rotate-right') + ' Tentar de novo</button></p></div>';
+  if (tipo === 'erro') m.innerHTML = '<div class="estado"><div class="bol" style="color:var(--danger)">' + ic('plug') + '</div><h2>Não deu para carregar.</h2><p>Motivo: ' + esc(msg) + '</p><p><button class="btn btn-primary" data-a="atualizar">' + ic('rotate') + ' Tentar de novo</button></p></div>';
 }
 
 /* =================== desenho geral =================== */
 function render() {
+  $('#hRight').hidden = false;
   renderTopo(); renderAbas(); renderVC(); renderRodape();
   renderConteudo();
   if (PAINEL) renderPainel();
@@ -603,9 +962,15 @@ function abasVisiveis() {
   if (e.admin && e.matriz) l.push({ id: 'gerenciar', nome: 'Links', icone: 'book-open' });
   return l;
 }
+const ULTIMO_CONT = {};
 function renderAbas() {
   $('#tabsbar').hidden = false;
-  $('#nav').innerHTML = abasVisiveis().map(a => '<button type="button" role="tab" data-a="aba" data-id="' + a.id + '" aria-selected="' + (a.id === ABA) + '">' + ic(a.icone) + ' ' + esc(a.nome) + (a.cont ? ' <span class="cnt">' + a.cont + '</span>' : '') + '</button>').join('');
+  const abas = abasVisiveis();
+  $('#nav').innerHTML = abas.map(a => {
+    const estala = a.cont && a.id in ULTIMO_CONT && a.cont > ULTIMO_CONT[a.id];
+    return '<button type="button" role="tab" data-a="aba" data-id="' + a.id + '" aria-selected="' + (a.id === ABA) + '">' + ic(a.icone) + ' ' + esc(a.nome) + (a.cont ? '<span class="cnt' + (estala ? ' cb-estala' : '') + '">' + a.cont + '</span>' : '') + '</button>';
+  }).join('');
+  abas.forEach(a => { ULTIMO_CONT[a.id] = a.cont || 0; });
 }
 function renderVC() {
   const v = DB.eu.verComo, b = $('#vcbar');
@@ -706,7 +1071,8 @@ function telaOps() {
   const e = DB.eu, v = visaoAtual(), lv = visoes();
   const base = DB.operacoes.filter(o => !UI.ag || o.agencia === UI.ag);
   const lista = listaVisivel(), depois = v.id === 'aprovar' ? listaVisivel('depois') : [];
-  let h = '<div class="stack"><div class="row" style="justify-content:space-between"><h2 class="tit">Operações de crédito</h2>' +
+  const sub = v.fila ? 'Por ordem de chegada: abra a primeira e vá decidindo, a próxima abre sozinha.' : 'Operações da sua agência, da mais nova para a mais antiga.';
+  let h = '<div class="stack"><div class="cb-titulo"><div><h2>Operações de crédito</h2><p>' + sub + '</p></div>' +
     (e.perm.solicita ? '<button class="btn btn-primary" data-a="novaOp">' + ic('plus') + ' Nova operação</button>' : '') + '</div>';
   if (lv.length > 1) h += '<div class="toolbar">' + lv.map(x => {
     const n = x.id === 'aprovar' ? base.filter(o => x.f(o) && !adiadaHoje(o)).length : base.filter(x.f).length;
@@ -715,7 +1081,6 @@ function telaOps() {
   h += '<div class="toolbar"><div class="busca">' + ic('magnifying-glass') + '<input class="in" id="buscaOps" placeholder="Buscar por cooperado, conta, número da operação' + RET + '" value="' + esc(UI.busca) + '"></div>';
   if (e.ve.length > 1) h += '<select class="in" id="agOps" style="width:auto" aria-label="Agência"><option value="">Todas as agências</option>' + e.ve.map(a => '<option value="' + a + '"' + (UI.ag === a ? ' selected' : '') + '>' + esc(labelAg(a)) + '</option>').join('') + '</select>';
   h += '</div>';
-  if (v.fila && lista.length > 1) h += '<div class="muted small">' + ic('list-check') + ' Por ordem de chegada. Abra a primeira e vá decidindo: a próxima abre sozinha.</div>';
   if (!lista.length) {
     h += '<div class="vazio">' + (v.fila && !UI.busca.trim() ? ic('circle-check') + (v.id === 'aprovar' ? ' Nenhuma operação pendente de aprovação hoje.' : ' Nada esperando por você agora. Tudo em dia!') : 'Nenhuma operação encontrada.') + '</div>';
   } else h += '<div class="lista">' + lista.map(o => itemOp(o, 'hoje')).join('') + '</div>';
@@ -775,8 +1140,8 @@ function passos(atual, falhou) {
 function telaForm() {
   const L = DB.listas, e = DB.eu;
   let h = '<div class="stack">';
-  h += '<div class="row" style="justify-content:space-between"><h2 class="tit">' + (F.n ? 'Corrigir operação ' + NRO + ' ' + F.n : 'Nova operação de crédito') + '</h2>' +
-    (F.n ? '<span>' + tag(F.status) + '</span>' : '') + '</div>';
+  h += '<div class="cb-titulo"><div><h2>' + (F.n ? 'Corrigir operação ' + NRO + ' ' + F.n : 'Nova operação de crédito') + '</h2>' +
+    '<p>Preencha os dados da mesa de negócios, marque o checklist e envie para a análise.</p></div>' + (F.n ? '<span>' + tag(F.status) + '</span>' : '') + '</div>';
   h += '<div class="card">' + passos(0) + '</div>';
   if (F.ultimaObs) h += '<div class="aviso">' + ic('triangle-exclamation') + '<div><b>Devolvida por ' + esc(F.ultimaObs.por) + ' em ' + esc(F.ultimaObs.em) + '</b>' + (F.ultimaObs.obs ? '<div class="texto">' + esc(F.ultimaObs.obs) + '</div>' : '') + '</div></div>';
   h += '<div class="barra" title="Preenchimento"><div id="barraF" style="width:0"></div></div>';
@@ -1049,7 +1414,7 @@ function blocoAcao(o) {
 /* =================== usuários =================== */
 function telaUsuarios() {
   const e = DB.eu;
-  let h = '<div class="stack"><div class="row"><button type="button" class="chip" data-a="vistaU" data-id="pessoas" aria-pressed="' + (UI.vistaU === 'pessoas') + '">' + ic('user-group') + ' Pessoas</button>' +
+  let h = '<div class="stack"><div class="cb-titulo"><div><h2>Usuários</h2><p>Quem acessa o sistema e o que cada tipo de usuário pode fazer.</p></div></div><div class="row"><button type="button" class="chip" data-a="vistaU" data-id="pessoas" aria-pressed="' + (UI.vistaU === 'pessoas') + '">' + ic('user-group') + ' Pessoas</button>' +
     '<button type="button" class="chip" data-a="vistaU" data-id="tipos" aria-pressed="' + (UI.vistaU === 'tipos') + '">' + ic('id-badge') + ' Tipos de usuário</button></div>';
   if (UI.vistaU === 'pessoas') {
     const q = UI.buscaP.trim().toLowerCase();
@@ -1125,7 +1490,7 @@ function telaGerenciar() {
   if (!LINKS) LINKS = { linkLogo: DB.linkLogo || '', atalhos: DB.atalhos.map(a => Object.assign({}, a)), mexeu: false };
   const L = LINKS;
   const erroLogo = L.linkLogo.trim() && !linkOk(L.linkLogo);
-  let h = '<div class="stack"><h2 class="tit">Links</h2>';
+  let h = '<div class="stack"><div class="cb-titulo"><div><h2>Links</h2><p>O endereço da logo do topo e o menu de links e guias.</p></div></div>';
   h += '<div class="card"><h3>' + ic('building-columns') + ' Logo do topo</h3><p class="muted small" style="margin:4px 0 10px">Endereço aberto ao clicar na logo CrediBrás. Em branco, a logo não leva a lugar nenhum.</p>' +
     '<div class="campo' + (erroLogo ? ' erro' : '') + '"><input class="in" data-lk="logo" value="' + esc(L.linkLogo) + '" placeholder="https:&#47;&#47;' + RET + '" aria-label="Link da logo">' + (erroLogo ? '<span class="msgerro">' + ic('circle-xmark') + ' Use um endereço que comece com https:&#47;&#47;</span>' : '') + '</div></div>';
   h += '<div class="card"><h3>' + ic('book-open') + ' Links e guias</h3><p class="muted small" style="margin:4px 0 10px">Aparecem para todo mundo ao clicar no nome do sistema, no topo.</p>';
@@ -1146,28 +1511,18 @@ function telaGerenciar() {
 
 /* =================== popup e toast =================== */
 function popup(o) {
-  const cores = { ok: 'var(--g2)', warn: 'var(--warn)', erro: '#f19a9a' };
+  const cores = { ok: 'var(--done)', warn: 'var(--warn)', erro: 'var(--danger)' };
   const icones = { ok: 'check', warn: 'exclamation', erro: 'xmark' };
   const t = o.tipo || 'ok';
   const raiz = $('#popRaiz');
   raiz.innerHTML = '<div class="pop-fundo" data-a="fecharPop"><div class="pop" role="dialog" aria-modal="true" style="--cor:' + cores[t] + '">' +
-    '<div class="faixa"></div><button type="button" class="ibtn x" data-a="fecharPop" aria-label="Fechar" title="Fechar">' + ic('xmark') + '</button>' +
-    '<div class="circ"><span class="onda"></span><span class="onda b"></span><span class="ico">' + ic(icones[t]) + '</span></div>' +
-    '<div class="cont"><h2></h2><p></p>' +
-    (o.detalhes && o.detalhes.length ? '<div class="det">' + o.detalhes.map(d => '<div><span>' + esc(d[0]) + '</span><b>' + esc(d[1]) + '</b></div>').join('') + '</div>' : '<div></div>') +
-    '<div class="bts">' + (o.botoes || [{ txt: 'Entendi', cls: 'btn-primary' }]).map((b, i) => '<button type="button" class="btn ' + (b.cls || 'btn-outline') + '" data-a="popBtn" data-i="' + i + '">' + esc(b.txt) + '</button>').join('') + '</div></div></div></div>';
-  $('h2', raiz).textContent = o.titulo || '';
-  $('p', raiz).textContent = o.texto || '';
+    '<button type="button" class="ibtn x" data-a="fecharPop" aria-label="Fechar" title="Fechar">' + ic('xmark') + '</button>' +
+    '<div class="tom">' + ic(icones[t]) + '</div><h2></h2><p></p>' +
+    (o.detalhes && o.detalhes.length ? '<div class="det">' + o.detalhes.map(d => '<div><span>' + esc(d[0]) + '</span><b>' + esc(d[1]) + '</b></div>').join('') + '</div>' : '') +
+    '<div class="bts">' + (o.botoes || [{ txt: 'Entendi', cls: 'btn-primary' }]).map((b, i) => '<button type="button" class="btn ' + (b.cls || 'btn-outline') + '" data-a="popBtn" data-i="' + i + '">' + esc(b.txt) + '</button>').join('') + '</div></div></div>';
+  $('.pop h2', raiz).textContent = o.titulo || '';
+  const p = $('.pop p', raiz); p.textContent = o.texto || ''; if (!o.texto) p.hidden = true;
   raiz._botoes = o.botoes || [{}];
-  if (t === 'ok') {
-    const pop = $('.pop', raiz), cs = ['#7cc242', '#f4c21b', '#0d6532', '#3b6cf0', '#d64545'];
-    for (let i = 0; i < 26; i++) {
-      const c = document.createElement('span'); c.className = 'confete';
-      c.style.left = (35 + Math.random() * 30) + '%'; c.style.background = cs[i % cs.length];
-      c.style.setProperty('--dx', ((Math.random() - .5) * 320) + 'px'); c.style.animationDelay = (.4 + Math.random() * .3) + 's';
-      pop.appendChild(c);
-    }
-  }
   setTimeout(() => { const b = $('.bts .btn', raiz); if (b) b.focus(); }, 50);
 }
 function closePopup() { $('#popRaiz').innerHTML = ''; }
@@ -1180,10 +1535,12 @@ let toastTimer = null;
 function toast(txt, acaoT) {
   const r = $('#toastRaiz');
   clearTimeout(toastTimer);
-  r.innerHTML = '<div class="toast" role="status"><span></span>' + (acaoT ? '<button type="button" data-a="toastAcao">' + esc(acaoT.txt) + '</button>' : '') + '</div>';
+  r.innerHTML = '<div class="toast" role="status" aria-live="polite"><span></span>' + (acaoT ? '<button type="button" data-a="toastAcao">' + esc(acaoT.txt) + '</button>' : '') + '</div>';
   $('span', r).textContent = txt;
   r._fn = acaoT && acaoT.fn;
-  toastTimer = setTimeout(() => { r.innerHTML = ''; }, 3500);
+  const el = $('.toast', r);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visivel')));
+  toastTimer = setTimeout(() => { el.classList.remove('visivel'); setTimeout(() => { if (el.isConnected) el.remove(); }, 300); }, acaoT ? 4500 : 2600);
 }
 /* excluir com segundo clique */
 function segundoClique(btn) {
@@ -1213,17 +1570,17 @@ function fimDaFila(o, titulo, texto, extra, diretoria) {
     detalhes: [['Operação', NRO + ' ' + o.n], ['Cooperado', o.cooperado], ['Valor', brl(o.valor)]].concat(extra || []) });
 }
 const ACOES = {
-  atualizar: () => { LINKS = null; carregar(); },
+  atualizar: () => { if (DB && !livre()) return; LINKS = null; carregar('atualizar'); },
   tema: () => {
     const novo = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', novo);
-    try { localStorage.setItem('tema', novo); } catch (e) { /* sem armazenamento */ }
+    aplicarTema(novo);
+    try { localStorage.setItem('cb_tema', novo); } catch (e) { /* sem armazenamento */ }
   },
   menu: el => { const m = el.getAttribute('data-m'); UI.menu = UI.menu === m ? '' : m; renderTopo(); },
   trocar: el => { UI.menu = ''; acao('trocarAcesso', [el.getAttribute('data-k')], r => toast('Agora você está em ' + r.eu.acesso.label)); },
   verComo: () => { const a = $('#vcAg').value, p = $('#vcPf').value; UI.menu = ''; acao('verComo', [a, p]); },
   sairVC: () => acao('sairVerComo', []),
-  aba: el => { ABA = el.getAttribute('data-id'); UI.menu = ''; renderAbas(); renderConteudo(); window.scrollTo(0, 0); },
+  aba: el => { const mudou = ABA !== el.getAttribute('data-id'); ABA = el.getAttribute('data-id'); UI.menu = ''; renderAbas(); renderConteudo(); window.scrollTo(0, 0); if (mudou) revelar(); },
   filtro: el => { UI.filtro = el.getAttribute('data-id'); renderConteudo(); },
   novaOp: () => { F = formVazio(); FALTA = []; ABA = 'nova'; renderAbas(); renderConteudo(); },
   abrirOp: el => { RESUMO = {}; abrirPainel({ tipo: 'op', n: +el.getAttribute('data-n'), fila: listaVisivel(el.getAttribute('data-g') || 'hoje').map(o => o.n) }); },
@@ -1234,7 +1591,7 @@ const ACOES = {
   fset: el => { setPath(F, el.getAttribute('data-p'), el.getAttribute('data-v')); limpaFalta(el.getAttribute('data-p')); renderConteudo(); },
   descartarForm: () => { F = formVazio(); FALTA = []; renderAbas(); renderConteudo(); toast('Formulário limpo'); },
   salvarForm: () => {
-    if (!F.cooperado.trim()) { FALTA = ['cooperado']; renderConteudo(); popup({ tipo: 'warn', titulo: 'Falta o nome do cooperado', texto: 'Preencha pelo menos o nome do cooperado para salvar o rascunho.' }); focaFalta(); return; }
+    if (!F.cooperado.trim()) { FALTA = ['cooperado']; renderConteudo(); popup({ tipo: 'warn', titulo: 'Falta o nome do cooperado', texto: 'Preencha pelo menos o nome do cooperado para salvar o rascunho.' }); focaFalta(); tremerErros(); return; }
     acao('salvarOperacao', [dadosForm(false)], r => {
       const o = r.operacoes.find(x => x.n === r.ultimo);
       if (o) F = formDe(o);
@@ -1248,7 +1605,7 @@ const ACOES = {
     if (f.campos.length) {
       renderConteudo();
       popup({ tipo: 'warn', titulo: 'Falta preencher', texto: 'Para enviar para análise, falta: ' + f.nomes.join(', ') + '.' });
-      focaFalta();
+      focaFalta(); tremerErros();
       return;
     }
     acao('salvarOperacao', [dadosForm(true)], r => {
@@ -1378,6 +1735,7 @@ document.addEventListener('click', ev => {
   if (UI.menu && !ev.target.closest('.mwrap')) { UI.menu = ''; renderTopo(); }
   if (!el || el.disabled) return;
   const fn = ACOES[el.getAttribute('data-a')];
+  if (ACOES_NAVEGAR[el.getAttribute('data-a')]) NAVEGOU++;
   if (fn) fn(el, ev);
 });
 
@@ -1426,17 +1784,21 @@ document.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape') return;
   if ($('#popRaiz').innerHTML) closePopup();
   else if (UI.menu) { UI.menu = ''; renderTopo(); }
-  else if (PAINEL) fecharPainel();
+  else if (PAINEL) { NAVEGOU++; fecharPainel(); }
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && DB && !OCUPADO && Date.now() - CARREGOU_EM > 60000 && !PAINEL && !(LINKS && LINKS.mexeu)) carregar();
+  if (document.visibilityState === 'visible' && DB && !OCUPADO && !CARREGANDO && Date.now() - CARREGOU_EM > 60000 && !PAINEL && !(LINKS && LINKS.mexeu)) carregar('calado');
 });
 
 /* sombra do topo ao rolar */
 addEventListener('scroll', () => { const h = $('header.top'); if (h) h.classList.toggle('scrolled', scrollY > 4); }, { passive: true });
 
 /* =================== início =================== */
-try { if (localStorage.getItem('tema') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { /* sem armazenamento */ }
+function aplicarTema(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const b = $('#btTema'); if (b) b.innerHTML = ic(t === 'dark' ? 'sun' : 'moon');
+}
+try { aplicarTema((localStorage.getItem('cb_tema') || localStorage.getItem('tema')) === 'dark' ? 'dark' : 'light'); } catch (e) { aplicarTema('light'); }
 carregar();
 </script>
 </body>

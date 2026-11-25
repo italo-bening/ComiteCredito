@@ -12,16 +12,19 @@
  *   3  "Análise estendida" vira "Aprovação posterior" (a diretoria decide outro dia; no dia seguinte volta para a fila);
  *      "Reprovada" vira "Negada"; getData devolve o dia de hoje para a fila da diretoria.
  *   4  Topo no Padrão do topo (barra de 54px, botões quadrados de 34px, agência com ícone, abas com 6px).
+ *   5  Visual Painel (guia visual CrediBrás / Almoxarifado 75): fonte Geist, topo quase preto, abas com sublinhado,
+ *      cartões lisos. Carregar e salvar não travam a tela: contorno na abertura e etiqueta de progresso junto do mouse.
+ *      Ícone da aba do navegador trocado para o padrão CrediSIS atual.
  */
-const VERSAO = 4;
-const VERSAO_DATA = '08/11/2026 19:15';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
+const VERSAO = 5;
+const VERSAO_DATA = '24/11/2026 20:50';   // dia/mês/ano hora:minuto da publicação (horário de Rondônia)
 
 const NOME_SISTEMA = 'Comitê de Crédito';
 const FUSO = 'America/Porto_Velho';
 const AGENCIAS = ['Matriz', '001', '002', '003', '004'];
 
 // ---------- ícone da aba do navegador (arquivo no Drive compartilhado como "Qualquer pessoa com o link") ----------
-const FAVICON_URL = 'https://drive.google.com/file/d/1n77pd6-pobbzkxi6LUGdvX74AiuKuWPQ/view?usp=sharing';
+const FAVICON_URL = 'https://drive.google.com/file/d/1PYDgIOE8YeTZ0IAZp66AyncXGdOH1cY4/view?usp=sharing';
 
 // ---------- caminho da operação ----------
 const ST = {

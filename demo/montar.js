@@ -125,7 +125,7 @@ const simulador = `
       try { r = JSON.parse(JSON.stringify(como(QUEM, k, ...JSON.parse(JSON.stringify(a))))); } catch (e) { erro = e; }
       guardar();
       if (erro) { if (fail) fail({ message: erro.message }); } else if (ok) ok(r);
-    }, 250);
+    }, 900);
   } });
   window.google = { script: { run: mk() } };
 
@@ -133,7 +133,7 @@ const simulador = `
   document.addEventListener('DOMContentLoaded', () => {
     const box = document.createElement('div');
     box.id = 'demoBox';
-    box.innerHTML = '<style>body{padding-bottom:56px}#demoBox{position:fixed;left:12px;bottom:12px;z-index:85;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 24px);padding:6px 8px;border-radius:14px;background:#f4c21b;color:#16211a;font:600 12.5px Inter,system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(0,0,0,.45)}#demoBox select{height:30px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#16211a;font:inherit;max-width:190px}#demoBox button{height:30px;border:0;border-radius:8px;background:rgba(0,0,0,.15);color:#16211a;font:inherit;padding:0 8px;cursor:pointer}</style>' +
+    box.innerHTML = '<style>body{padding-bottom:56px}#demoBox{position:fixed;left:12px;bottom:12px;z-index:55;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 24px);padding:6px 8px;border-radius:14px;background:#f4c21b;color:#16211a;font:600 12.5px Inter,system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(0,0,0,.45)}#demoBox select{height:30px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#16211a;font:inherit;max-width:190px}#demoBox button{height:30px;border:0;border-radius:8px;background:rgba(0,0,0,.15);color:#16211a;font:inherit;padding:0 8px;cursor:pointer}</style>' +
       '<span>TESTE &middot; entrar como</span><select id="demoQuem"></select><button type="button" id="demoZerar" title="Apagar tudo e voltar aos dados de exemplo">Recomeçar</button>';
     document.body.appendChild(box);
     const sel = box.querySelector('select');

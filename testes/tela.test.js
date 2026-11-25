@@ -13,7 +13,7 @@ como(DEV, 'salvarPessoa', { email: AN, nome: 'Carlos Analista', agencia: 'Matriz
 como(DEV, 'salvarPessoa', { email: GE, nome: 'Davi Gerente', agencia: '002', perfil: 'gerente', acessos: [{ agencia: '002', perfil: 'usuario' }] });
 como(DEV, 'salvarPessoa', { email: DI, nome: 'Eva Diretora', agencia: 'Matriz', perfil: 'diretoria' });
 
-let QUEM = AT2, falhas = 0, ok = 0;
+let QUEM = AT2, ATRASO = 60, falhas = 0, ok = 0;
 const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   ' + nome); } catch (e) { falhas++; console.log('  FALHA ' + nome + '\n        ' + e.message.split('\n')[0]); } };
 
 (async () => {
@@ -25,6 +25,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
   page.on('console', m => { if (/Could not find one or more icon/.test(m.text())) erros.push('ícone inexistente: ' + m.text()); });
   /* Font Awesome local, quando o CDN não está acessível (FA_LOCAL=caminho do all.min.js) */
   if (process.env.FA_LOCAL) await page.route('**/font-awesome/6.5.2/js/all.min.js', r => r.fulfill({ path: process.env.FA_LOCAL, contentType: 'text/javascript' }));
+  await page.exposeFunction('__atraso', () => ATRASO);
   await page.exposeFunction('__srv', (fn, args) => {
     try { return JSON.stringify({ val: como(QUEM, fn, ...JSON.parse(args)) }); }
     catch (e) { return JSON.stringify({ erro: e.message }); }
@@ -33,7 +34,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     const mk = (ok, fail) => new Proxy({}, { get: (_, k) => {
       if (k === 'withSuccessHandler') return f => mk(f, fail);
       if (k === 'withFailureHandler') return f => mk(ok, f);
-      return (...a) => { window.__srv(k, JSON.stringify(a)).then(r => { r = JSON.parse(r); setTimeout(() => (r.erro ? fail && fail({ message: r.erro }) : ok && ok(r.val)), 60); }); };
+      return (...a) => { Promise.all([window.__srv(k, JSON.stringify(a)), window.__atraso()]).then(([r, ms]) => { r = JSON.parse(r); setTimeout(() => (r.erro ? fail && fail({ message: r.erro }) : ok && ok(r.val)), ms); }); };
     } });
     window.google = { script: { run: mk() } };
   });
@@ -52,7 +53,7 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
   await passo('atendente abre e vê o rodapé com a versão', async () => {
     await entrar(AT2);
     const r = await page.textContent('#rodape');
-    if (!/Comitê de Crédito · Versão 4 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
+    if (!/Comitê de Crédito · Versão 5 · Publicada em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(r)) throw new Error(r);
   });
   await passo('enviar incompleto mostra o que falta e marca em vermelho', async () => {
     await page.click('[data-a="aba"][data-id="nova"]');
@@ -222,6 +223,24 @@ const passo = async (nome, fn) => { try { await fn(); ok++; console.log('  ok   
     await page.click('[data-a="aba"][data-id="ops"]');
     await page.click('[data-a="filtro"][data-id="todas"]');
     await foto('10-lista-escuro');
+  });
+  await passo('carregando não trava: navega à vontade, só salvar espera', async () => {
+    await entrar(AT2);
+    ATRASO = 2500;
+    await page.click('[data-a="atualizar"]');
+    await page.waitForSelector('.ac-label');
+    igual((await page.textContent('.ac-text')).trim(), 'Atualizando');
+    if (await page.locator('.cb-esqueleto, .estado').count()) throw new Error('a tela foi trocada enquanto atualiza');
+    await page.click('[data-a="aba"][data-id="nova"]');
+    igual(await page.getAttribute('[data-a="aba"][data-id="nova"]', 'aria-selected'), 'true');
+    await page.fill('[data-f="cooperado"]', 'Teste durante a espera');
+    await page.click('[data-a="salvarForm"]');
+    await page.waitForFunction(() => /Espere terminar/.test((document.querySelector('.toast') || {}).textContent || ''));
+    await page.screenshot({ path: path.join(FOTOS, '12-atualizando.png') });
+    await page.waitForFunction(() => /Pronto/.test((document.querySelector('.ac-text') || {}).textContent || ''), null, { timeout: 8000 });
+    igual(await page.getAttribute('[data-a="aba"][data-id="nova"]', 'aria-selected'), 'true');
+    igual(await page.inputValue('[data-f="cooperado"]'), 'Teste durante a espera');
+    ATRASO = 60;
   });
   await passo('celular: sem rolagem lateral', async () => {
     await page.setViewportSize({ width: 390, height: 800 });
